@@ -16,3 +16,9 @@ export {
     type UpdateTournamentInput,
     type TournamentTeamIdsInput,
 } from "./tournamentValidators";
+export {
+    createTeamSchema,
+    updateTeamSchema,
+    type CreateTeamInput,
+    type UpdateTeamInput,
+} from "./teamValidators";

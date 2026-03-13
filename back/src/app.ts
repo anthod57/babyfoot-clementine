@@ -4,6 +4,7 @@ import { errorHandler } from "./middlewares/errorHandler";
 import userRoutes from "./routes/userRoutes";
 import authRoutes from "./routes/authRoutes";
 import tournamentRoutes from "./routes/tournamentRoutes";
+import teamRoutes from "./routes/teamRoutes";
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.get("/health", (_req, res) => {
 app.use("/v1/auth", authRoutes);
 app.use("/v1/users", userRoutes);
 app.use("/v1/tournaments", tournamentRoutes);
+app.use("/v1/teams", teamRoutes);
 
 app.use(errorHandler);
 
