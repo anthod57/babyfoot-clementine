@@ -1,6 +1,12 @@
 import "dotenv/config";
 import { sequelize } from "../src/config/database";
-import { User, Role, Team } from "../src/models";
+import {
+    User,
+    Role,
+    Team,
+    Tournament,
+    TeamTournamentParticipation,
+} from "../src/models";
 import { hashPassword } from "../src/utils/password";
 import { UserRole } from "../src/models/userRoleModel";
 
@@ -17,6 +23,8 @@ const TEST_ADMIN = {
 let adminToken: string | null = null;
 let testUserId: number | null = null;
 let testTeamId: number | null = null;
+let secondTestTeamId: number | null = null;
+let testTournamentId: number | null = null;
 
 const TEST_USER = {
     email: "testuser@test.com",
@@ -88,6 +96,60 @@ export async function getTestTeamId(): Promise<number> {
 }
 
 /**
+ * Get a second test team ID (for match home/away - must be different teams)
+ */
+export async function getSecondTestTeamId(): Promise<number> {
+    if (secondTestTeamId) return secondTestTeamId;
+
+    await sequelize.authenticate();
+    await sequelize.sync();
+
+    const [team] = await Team.findOrCreate({
+        where: { name: "Away Test Team for Matches" },
+        defaults: { name: "Away Test Team for Matches" },
+    });
+    secondTestTeamId = team.id;
+    return secondTestTeamId;
+}
+
+/**
+ * Get a test tournament ID (for matches - creates tournament if needed)
+ */
+export async function getTestTournamentId(): Promise<number> {
+    if (testTournamentId) return testTournamentId;
+
+    await sequelize.authenticate();
+    await sequelize.sync();
+
+    const [tournament] = await Tournament.findOrCreate({
+        where: { name: "Test Tournament for Matches" },
+        defaults: {
+            name: "Test Tournament for Matches",
+            startDate: new Date("2025-06-01"),
+            endDate: new Date("2025-06-30"),
+        },
+    });
+    testTournamentId = tournament.id;
+
+    // Ensure test teams are in this tournament (for match creation)
+    const t1 = await getTestTeamId();
+    const t2 = await getSecondTestTeamId();
+    for (const teamId of [t1, t2]) {
+        const exists = await TeamTournamentParticipation.findOne({
+            where: { tournamentId: tournament.id, teamId },
+        });
+        if (!exists) {
+            await TeamTournamentParticipation.create({
+                tournamentId: tournament.id,
+                teamId,
+            });
+        }
+    }
+
+    return testTournamentId;
+}
+
+/**
  * Get an admin JWT for testing purposes
  * @returns {Promise<string>}
  */
@@ -118,6 +180,22 @@ export async function getAdminToken(): Promise<string> {
         email: admin.email,
     });
     return adminToken;
+}
+
+/**
+ * Clean up test-created teams and tournaments (by name)
+ */
+export async function cleanupTestData(options?: {
+    teamNames?: string[];
+    tournamentNames?: string[];
+}): Promise<void> {
+    const { teamNames = [], tournamentNames = [] } = options ?? {};
+    for (const name of teamNames) {
+        await Team.destroy({ where: { name } });
+    }
+    for (const name of tournamentNames) {
+        await Tournament.destroy({ where: { name } });
+    }
 }
 
 /**

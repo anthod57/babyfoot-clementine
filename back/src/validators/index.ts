@@ -22,3 +22,10 @@ export {
     type CreateTeamInput,
     type UpdateTeamInput,
 } from "./teamValidators";
+export {
+    createMatchSchema,
+    updateMatchSchema,
+    matchResultSchema,
+    type CreateMatchInput,
+    type UpdateMatchInput,
+} from "./matchValidators";

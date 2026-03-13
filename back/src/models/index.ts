@@ -5,6 +5,7 @@ import { Tournament } from "./tournamentModel";
 import { Team } from "./teamModel";
 import { TeamTournamentParticipation } from "./teamTournamentParticipationModel";
 import { TeamHasUser } from "./teamHasUserModel";
+import { Match } from "./matchModel";
 
 User.belongsToMany(Role, { through: UserRole, foreignKey: "userId" });
 Role.belongsToMany(User, { through: UserRole, foreignKey: "roleId" });
@@ -21,4 +22,11 @@ Tournament.belongsToMany(Team, {
     foreignKey: "tournamentId",
 });
 
-export { User, Role, UserRole, Tournament, Team, TeamTournamentParticipation, TeamHasUser };
+Match.belongsTo(Tournament, { foreignKey: "tournamentId" });
+Match.belongsTo(Team, { foreignKey: "homeTeamId", as: "homeTeam" });
+Match.belongsTo(Team, { foreignKey: "awayTeamId", as: "awayTeam" });
+Tournament.hasMany(Match, { foreignKey: "tournamentId" });
+Team.hasMany(Match, { foreignKey: "homeTeamId" });
+Team.hasMany(Match, { foreignKey: "awayTeamId" });
+
+export { User, Role, UserRole, Tournament, Team, TeamTournamentParticipation, TeamHasUser, Match };

@@ -1,6 +1,11 @@
 import request from "supertest";
 import app from "../src/app";
-import { getAdminToken, getTestTeamId, closeDatabase } from "./setup";
+import {
+    getAdminToken,
+    getTestTeamId,
+    cleanupTestData,
+    closeDatabase,
+} from "./setup";
 import { sequelize } from "../src/config/database";
 import "../src/models";
 
@@ -24,6 +29,14 @@ describe("Tournaments API", () => {
     });
 
     afterAll(async () => {
+        await cleanupTestData({
+            tournamentNames: [
+                "Tournament for teams test",
+                "Tournament for matches test",
+                "Tournament for add team test",
+                "Tournament for remove team test",
+            ],
+        });
         await closeDatabase();
     });
 
@@ -206,6 +219,37 @@ describe("Tournaments API", () => {
             expect(res.status).toBe(200);
             expect(Array.isArray(res.body)).toBe(true);
             expect(res.body).toHaveLength(0);
+        });
+    });
+
+    describe("GET /:id/matches", () => {
+        let tournamentForMatchesId: number;
+
+        beforeAll(async () => {
+            const res = await request(app)
+                .post(BASE)
+                .set("Authorization", `Bearer ${token}`)
+                .send({
+                    name: "Tournament for matches test",
+                    ...validDates,
+                });
+            tournamentForMatchesId = res.body.id;
+        });
+
+        it("should return 404 when tournament does not exist", async () => {
+            const res = await request(app)
+                .get(`${BASE}/999999/matches`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).toBe(404);
+            expect(res.body.error).toContain("not found");
+        });
+
+        it("should return 200 and array of matches (possibly empty)", async () => {
+            const res = await request(app)
+                .get(`${BASE}/${tournamentForMatchesId}/matches`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
         });
     });
 

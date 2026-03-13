@@ -5,6 +5,7 @@ import {
     createTournamentSchema,
     updateTournamentSchema,
 } from "../validators/tournamentValidators";
+import { idParamSchema } from "../validators";
 import { auth, requireRole } from "../middlewares/auth";
 
 const router = Router();
@@ -47,6 +48,13 @@ router.delete(
     tournamentController.removeTeamFromTournament.bind(tournamentController)
 );
 
+router.post(
+    "/:id/schedule-matches",
+    auth,
+    requireRole("admin"),
+    tournamentController.scheduleMatchesForTournament.bind(tournamentController)
+);
+
 // -- Public -- //
 router.get(
     "/",
@@ -64,6 +72,13 @@ router.get(
     "/:id/teams",
     auth,
     tournamentController.getTeamsOfTournament.bind(tournamentController)
+);
+
+router.get(
+    "/:id/matches",
+    auth,
+    validate(idParamSchema, "params"),
+    tournamentController.getMatchesOfTournament.bind(tournamentController)
 );
 
 export default router;

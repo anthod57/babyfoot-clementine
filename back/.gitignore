@@ -4,6 +4,12 @@ node_modules/
 # Build output
 dist/
 
+# Test build artifacts (tsc should not compile tests - use npm run build)
+tests/**/*.js
+tests/**/*.d.ts
+tests/**/*.js.map
+tests/**/*.d.ts.map
+
 # Environment
 .env
 .env.local

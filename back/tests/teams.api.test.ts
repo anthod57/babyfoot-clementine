@@ -1,6 +1,11 @@
 import request from "supertest";
 import app from "../src/app";
-import { getAdminToken, getTestUserId, closeDatabase } from "./setup";
+import {
+    getAdminToken,
+    getTestUserId,
+    cleanupTestData,
+    closeDatabase,
+} from "./setup";
 import { sequelize } from "../src/config/database";
 import "../src/models";
 
@@ -19,6 +24,12 @@ describe("Teams API", () => {
     });
 
     afterAll(async () => {
+        await cleanupTestData({
+            teamNames: [
+                "Team for users test",
+                "Team for remove user test",
+            ],
+        });
         await closeDatabase();
     });
 

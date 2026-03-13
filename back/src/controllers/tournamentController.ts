@@ -167,6 +167,41 @@ class TournamentController extends AbstractController {
 
         return this.noContent(res);
     }
+
+    /**
+     * Get all matches of a tournament
+     * @param {Request} req
+     * @param {Response} res
+     * @returns {Promise<Response>}
+     */
+    public async getMatchesOfTournament(
+        req: Request,
+        res: Response
+    ): Promise<Response> {
+        const { id } = req.params as unknown as { id: number };
+
+        const matches = await this.tournamentService.getMatchesOfTournament(id);
+
+        return this.ok(res, matches);
+    }
+
+    /**
+     * Generate round-robin matches for a tournament
+     * @param {Request} req
+     * @param {Response} res
+     * @returns {Promise<Response>}
+     */
+    public async scheduleMatchesForTournament(
+        req: Request,
+        res: Response
+    ): Promise<Response> {
+        const { id } = req.params as unknown as { id: number };
+
+        const matches =
+            await this.tournamentService.scheduleMatchesForTournament(id);
+
+        return this.created(res, matches);
+    }
 }
 
 export default new TournamentController();
