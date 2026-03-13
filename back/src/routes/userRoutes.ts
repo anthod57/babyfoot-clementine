@@ -6,13 +6,20 @@ import { idParamSchema, createUserSchema } from "../validators";
 
 const router = Router();
 
-router.get("/", auth, requireRole("admin"), userController.getAllUsers.bind(userController));
+router.get(
+    "/",
+    auth,
+    requireRole("admin"),
+    userController.getAllUsers.bind(userController)
+);
+
 router.get(
     "/:id",
     auth,
     validate(idParamSchema, "params"),
     userController.getUserById.bind(userController)
 );
+
 router.post(
     "/",
     validate(createUserSchema),

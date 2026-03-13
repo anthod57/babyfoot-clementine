@@ -8,3 +8,11 @@ export {
     type UpdateUserRolesInput,
 } from "./userValidators";
 export { loginSchema, type LoginInput } from "./authValidators";
+export {
+    createTournamentSchema,
+    updateTournamentSchema,
+    tournamentTeamIdsSchema,
+    type CreateTournamentInput,
+    type UpdateTournamentInput,
+    type TournamentTeamIdsInput,
+} from "./tournamentValidators";

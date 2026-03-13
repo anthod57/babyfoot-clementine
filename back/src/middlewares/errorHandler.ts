@@ -18,6 +18,16 @@ export class ValidationError extends Error {
     }
 }
 
+export class NotFoundError extends Error {
+    readonly statusCode = 404;
+
+    constructor(message: string = "Resource not found") {
+        super(message);
+        this.name = "NotFoundError";
+        Object.setPrototypeOf(this, NotFoundError.prototype);
+    }
+}
+
 interface ErrorPayload {
     error: string;
     errors?: ValidationIssue[];

@@ -17,6 +17,7 @@ class UserController extends AbstractController {
      */
     public async getAllUsers(req: Request, res: Response): Promise<Response> {
         const users = await this.userService.getAllUsers();
+
         return this.ok(res, users);
     }
 

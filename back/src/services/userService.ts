@@ -109,15 +109,9 @@ export default class UserService extends AbstractService {
      * @returns {Promise<User>}
      */
     public async updateUser(id: number, user: User): Promise<User> {
-        await this.update(User, user, { id });
-
-        const updatedUser = await this.findById(User, id);
-
-        if (!updatedUser) {
-            throw new Error("User not found");
-        }
-
-        return updatedUser;
+        return this.update(User, user, { id }, {
+            notFoundMessage: "User not found",
+        });
     }
 
     /**
@@ -126,7 +120,10 @@ export default class UserService extends AbstractService {
      * @returns {Promise<number>}
      */
     public async deleteUser(id: number): Promise<number> {
-        return this.delete(User, { id });
+        await this.delete(User, { id }, {
+            notFoundMessage: "User not found",
+        });
+        return id;
     }
 
     /**
@@ -135,11 +132,9 @@ export default class UserService extends AbstractService {
      * @returns {Promise<Role[]>}
      */
     public async getUserRoles(id: number): Promise<Role[]> {
-        const user = await this.findById(User, id);
-
-        if (!user) {
-            throw new Error("User not found");
-        }
+        const user = await this.findByIdOrThrow(User, id, undefined, {
+            notFoundMessage: "User not found",
+        });
 
         const roles = await user.getRoles();
 
@@ -157,18 +152,16 @@ export default class UserService extends AbstractService {
      * @returns {Promise<User>}
      */
     public async updateUserRoles(id: number, roles: Role[]): Promise<User> {
+        await this.findByIdOrThrow(User, id, undefined, {
+            notFoundMessage: "User not found",
+        });
         // Delete all roles then add the new ones
         await UserRole.destroy({ where: { userId: id } });
         await UserRole.bulkCreate(
             roles.map(role => ({ userId: id, roleId: role.id }))
         );
-
-        const updatedUser = await this.findById(User, id);
-
-        if (!updatedUser) {
-            throw new Error("User not found");
-        }
-
-        return updatedUser;
+        return this.findByIdOrThrow(User, id, undefined, {
+            notFoundMessage: "User not found",
+        });
     }
 }

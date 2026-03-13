@@ -5,6 +5,11 @@ import {
     CreationAttributes,
     WhereOptions,
 } from "sequelize";
+import { NotFoundError } from "../middlewares/errorHandler";
+
+export interface NotFoundOptions {
+    notFoundMessage?: string;
+}
 
 /**
  * Abstract service class with common methods
@@ -39,6 +44,24 @@ export default abstract class AbstractService {
     }
 
     /**
+     * Find a record by id or throw NotFoundError
+     */
+    protected async findByIdOrThrow<T extends Model>(
+        model: ModelStatic<T>,
+        id: string | number,
+        findOptions?: FindOptions<T>,
+        notFoundOptions?: NotFoundOptions
+    ): Promise<T> {
+        const record = await this.findById(model, id, findOptions);
+        if (!record) {
+            throw new NotFoundError(
+                notFoundOptions?.notFoundMessage ?? "Resource not found"
+            );
+        }
+        return record;
+    }
+
+    /**
      * Find a single record
      * @param {ModelStatic<T>} model
      * @param {FindOptions<T>} options
@@ -65,31 +88,40 @@ export default abstract class AbstractService {
     }
 
     /**
-     * Update a record
-     * @param {ModelStatic<T>} model
-     * @param {Partial<CreationAttributes<T>>} data
-     * @param {WhereOptions<T>} where
-     * @returns {Promise<[number, T[] | undefined]>}
+     * Update a record. Throws NotFoundError if no row was affected.
+     * @returns {Promise<T>} The updated record
      */
     protected async update<T extends Model>(
         model: ModelStatic<T>,
         data: Partial<CreationAttributes<T>>,
-        where: WhereOptions<T>
-    ): Promise<[number, T[] | undefined]> {
+        where: WhereOptions<T>,
+        notFoundOptions?: NotFoundOptions
+    ): Promise<T> {
         const [affectedCount] = await model.update(data, { where });
-        return [affectedCount, await model.findAll({ where })];
+        if (affectedCount === 0) {
+            throw new NotFoundError(
+                notFoundOptions?.notFoundMessage ?? "Resource not found"
+            );
+        }
+        const [updated] = await model.findAll({ where });
+        return updated!;
     }
 
     /**
-     * Delete a record
-     * @param {ModelStatic<T>} model
-     * @param {WhereOptions<T>} where
-     * @returns {Promise<number>}
+     * Delete a record. Throws NotFoundError if no row was deleted.
+     * @returns {Promise<number>} The number of deleted rows
      */
     protected async delete<T extends Model>(
         model: ModelStatic<T>,
-        where: WhereOptions<T>
+        where: WhereOptions<T>,
+        notFoundOptions?: NotFoundOptions
     ): Promise<number> {
-        return model.destroy({ where });
+        const deleted = await model.destroy({ where });
+        if (deleted === 0) {
+            throw new NotFoundError(
+                notFoundOptions?.notFoundMessage ?? "Resource not found"
+            );
+        }
+        return deleted;
     }
 }
