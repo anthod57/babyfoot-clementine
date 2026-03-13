@@ -148,6 +148,8 @@ describe("Matches API", () => {
                 date: expect.any(String),
                 homeTeamId,
                 awayTeamId,
+                homeScore: 0,
+                awayScore: 0,
                 result: MatchResult.PENDING,
             });
             expect(res.body.homeTeam).toBeDefined();
@@ -208,6 +210,16 @@ describe("Matches API", () => {
                 .send({ result: MatchResult.HOME_TEAM_WIN });
             expect(res.status).toBe(200);
             expect(res.body.result).toBe(MatchResult.HOME_TEAM_WIN);
+        });
+
+        it("should update homeScore and awayScore and return 200", async () => {
+            const res = await request(app)
+                .put(`${BASE}/${createdMatchId}`)
+                .set("Authorization", `Bearer ${token}`)
+                .send({ homeScore: 10, awayScore: 7 });
+            expect(res.status).toBe(200);
+            expect(res.body.homeScore).toBe(10);
+            expect(res.body.awayScore).toBe(7);
         });
     });
 

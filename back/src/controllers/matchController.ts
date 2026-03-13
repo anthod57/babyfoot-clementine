@@ -41,7 +41,7 @@ class MatchController extends AbstractController {
      * @returns {Promise<Response>}
      */
     public async createMatch(req: Request, res: Response): Promise<Response> {
-        const { tournamentId, date, homeTeamId, awayTeamId, result } =
+        const { tournamentId, date, homeTeamId, awayTeamId, homeScore, awayScore, result } =
             req.body as unknown as CreateMatchInput;
 
         const match = await this.matchService.createMatch({
@@ -49,6 +49,8 @@ class MatchController extends AbstractController {
             date,
             homeTeamId,
             awayTeamId,
+            homeScore,
+            awayScore,
             result,
         });
 
@@ -64,13 +66,15 @@ class MatchController extends AbstractController {
     public async updateMatch(req: Request, res: Response): Promise<Response> {
         const { id } = req.params as unknown as { id: number };
 
-        const { date, homeTeamId, awayTeamId, result } =
+        const { date, homeTeamId, awayTeamId, homeScore, awayScore, result } =
             req.body as unknown as Partial<CreateMatchInput>;
 
         const match = await this.matchService.updateMatch(id, {
             date,
             homeTeamId,
             awayTeamId,
+            homeScore,
+            awayScore,
             result,
         });
 

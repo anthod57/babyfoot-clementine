@@ -27,6 +27,8 @@ export class Match extends Model<
     declare date: Date;
     declare homeTeamId: number;
     declare awayTeamId: number;
+    declare homeScore: number;
+    declare awayScore: number;
     /** 0 = Pending, 1 = Home team win, 2 = Away team win, 3 = Draw */
     declare result: MatchResult;
     declare readonly createdAt: CreationOptional<Date>;
@@ -67,6 +69,18 @@ Match.init(
             references: { model: "teams", key: "id" },
             onDelete: "CASCADE",
             onUpdate: "CASCADE",
+        },
+        homeScore: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: false,
+            defaultValue: 0,
+            field: "home_score",
+        },
+        awayScore: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: false,
+            defaultValue: 0,
+            field: "away_score",
         },
         result: {
             type: DataTypes.TINYINT.UNSIGNED,

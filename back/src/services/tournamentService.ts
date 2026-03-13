@@ -164,6 +164,8 @@ export default class TournamentService extends AbstractService {
                 tournamentId,
                 homeTeamId: match.homeTeamId,
                 awayTeamId: match.awayTeamId,
+                homeScore: 0,
+                awayScore: 0,
                 result: MatchResult.PENDING,
                 date: new Date(),
             });

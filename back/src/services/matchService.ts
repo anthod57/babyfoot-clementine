@@ -10,6 +10,8 @@ export type CreateMatchInput = {
     date: Date;
     homeTeamId: number;
     awayTeamId: number;
+    homeScore?: number;
+    awayScore?: number;
     result?: MatchResult;
 };
 
@@ -65,6 +67,8 @@ export default class MatchService extends AbstractService {
             date: match.date,
             homeTeamId: match.homeTeamId,
             awayTeamId: match.awayTeamId,
+            homeScore: match.homeScore ?? 0,
+            awayScore: match.awayScore ?? 0,
             result: match.result ?? MatchResult.PENDING,
         });
 
@@ -136,6 +140,14 @@ export default class MatchService extends AbstractService {
         // If away team id is provided
         if (match.awayTeamId !== undefined)
             updateData.awayTeamId = match.awayTeamId;
+
+        // If homeScore is provided
+        if (match.homeScore !== undefined)
+            updateData.homeScore = match.homeScore;
+
+        // If awayScore is provided
+        if (match.awayScore !== undefined)
+            updateData.awayScore = match.awayScore;
 
         // If result is provided
         if (match.result !== undefined) updateData.result = match.result;

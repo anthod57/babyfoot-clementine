@@ -7,6 +7,11 @@ export const matchResultSchema = z
     .min(0, "Result must be 0-3")
     .max(3, "Result must be 0-3");
 
+const scoreSchema = z.coerce
+    .number()
+    .int()
+    .min(0, "Score must be 0 or greater");
+
 const matchBaseSchema = z.object({
     tournamentId: z.coerce
         .number()
@@ -21,6 +26,8 @@ const matchBaseSchema = z.object({
         .number()
         .int()
         .positive("Away team ID must be a positive integer"),
+    homeScore: scoreSchema.default(0),
+    awayScore: scoreSchema.default(0),
     result: matchResultSchema.default(0),
 });
 
@@ -45,6 +52,8 @@ export const updateMatchSchema = z
             .int()
             .positive()
             .optional(),
+        homeScore: scoreSchema.optional(),
+        awayScore: scoreSchema.optional(),
         result: matchResultSchema.optional(),
     })
     .refine(
