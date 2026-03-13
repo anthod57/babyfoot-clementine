@@ -69,15 +69,15 @@ export default abstract class AbstractService {
      * @param {ModelStatic<T>} model
      * @param {Partial<CreationAttributes<T>>} data
      * @param {WhereOptions<T>} where
-     * @returns {Promise<[number]>}
+     * @returns {Promise<[number, T[] | undefined]>}
      */
     protected async update<T extends Model>(
         model: ModelStatic<T>,
         data: Partial<CreationAttributes<T>>,
         where: WhereOptions<T>
-    ): Promise<[number]> {
+    ): Promise<[number, T[] | undefined]> {
         const [affectedCount] = await model.update(data, { where });
-        return [affectedCount];
+        return [affectedCount, await model.findAll({ where })];
     }
 
     /**

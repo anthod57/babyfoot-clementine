@@ -1,6 +1,7 @@
 import app from "./app";
 import { env } from "./config/env";
 import { sequelize } from "./config/database";
+import "./models";
 
 const DB_RETRY_DELAY_MS = 2000;
 const DB_MAX_RETRIES = 30;
@@ -29,6 +30,7 @@ async function connectWithRetry(): Promise<void> {
 
 async function bootstrap(): Promise<void> {
     await connectWithRetry();
+    await sequelize.sync();
 
     const server = app.listen(env.PORT, () => {
         console.log(`Server running on port ${env.PORT} (${env.NODE_ENV})`);

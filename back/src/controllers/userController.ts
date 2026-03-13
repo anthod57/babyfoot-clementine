@@ -1,10 +1,14 @@
+import UserService from "../services/userService";
 import AbstractController from "./abstractController";
+import { Request, Response } from "express";
 
 /**
  * User controller class
  * Handles user-related requests
  */
 class UserController extends AbstractController {
+    private readonly userService = new UserService();
+
     /**
      * Get all users
      * @param {Request} req
@@ -12,17 +16,26 @@ class UserController extends AbstractController {
      * @returns {Promise<Response>}
      */
     public async getAllUsers(req: Request, res: Response): Promise<Response> {
-        throw new Error("Not implemented");
+        const users = await this.userService.getAllUsers();
+        return this.ok(res, users);
     }
 
     /**
-     * Get a user by its id
+     * Get an user by its id
      * @param {Request} req
      * @param {Response} res
      * @returns {Promise<Response>}
      */
     public async getUserById(req: Request, res: Response): Promise<Response> {
-        throw new Error("Not implemented");
+        const { id } = req.params as unknown as { id: number };
+
+        const user = await this.userService.getUserById(id);
+
+        if (!user) {
+            return this.notFound(res, "User not found");
+        }
+
+        return this.ok(res, user);
     }
 
     /**
@@ -32,50 +45,17 @@ class UserController extends AbstractController {
      * @returns {Promise<Response>}
      */
     public async createUser(req: Request, res: Response): Promise<Response> {
-        throw new Error("Not implemented");
-    }
+        const { username, name, surname, email, password } = req.body;
 
-    /**
-     * Update an user
-     * @param {Request} req
-     * @param {Response} res
-     * @returns {Promise<Response>}
-     */
-    public async updateUser(req: Request, res: Response): Promise<Response> {
-        throw new Error("Not implemented");
-    }
+        const user = await this.userService.createUser({
+            username,
+            name,
+            surname,
+            email,
+            password,
+        });
 
-    /**
-     * Delete an user
-     * @param {Request} req
-     * @param {Response} res
-     * @returns {Promise<Response>}
-     */
-    public async deleteUser(req: Request, res: Response): Promise<Response> {
-        throw new Error("Not implemented");
-    }
-
-    /**
-     * Update the roles of an user
-     * @param {Request} req
-     * @param {Response} res
-     * @returns {Promise<Response>}
-     */
-    public async updateUserRoles(
-        req: Request,
-        res: Response
-    ): Promise<Response> {
-        throw new Error("Not implemented");
-    }
-
-    /**
-     * Get the roles of an user
-     * @param {Request} req
-     * @param {Response} res
-     * @returns {Promise<Response>}
-     */
-    public async getUserRoles(req: Request, res: Response): Promise<Response> {
-        throw new Error("Not implemented");
+        return this.created(res, user);
     }
 }
 

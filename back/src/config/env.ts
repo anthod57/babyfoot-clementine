@@ -11,4 +11,6 @@ export const env = {
     DB_PASSWORD: process.env.DB_PASSWORD ?? "",
     DB_NAME: process.env.DB_NAME ?? "babyfoot_clementine",
     CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+    JWT_SECRET: process.env.JWT_SECRET ?? "secret",
+    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? "7d",
 } as const;

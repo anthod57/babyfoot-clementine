@@ -53,4 +53,11 @@ export default abstract class AbstractController {
     protected badRequest(res: Response, message = "Bad request"): Response {
         return res.status(400).json({ error: message });
     }
+
+    /**
+     * Send an unauthorized response (401)
+     */
+    protected unauthorized(res: Response, message = "Unauthorized"): Response {
+        return res.status(401).json({ error: message });
+    }
 }
