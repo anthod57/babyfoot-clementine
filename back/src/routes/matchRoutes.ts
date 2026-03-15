@@ -4,6 +4,7 @@ import matchController from "../controllers/matchController";
 import {
     createMatchSchema,
     updateMatchSchema,
+    getMatchesQuerySchema,
 } from "../validators/matchValidators";
 import { idParamSchema } from "../validators";
 import { auth, requireRole } from "../middlewares/auth";
@@ -36,16 +37,15 @@ router.delete(
     matchController.deleteMatch.bind(matchController)
 );
 
-// -- Authenticated -- //
+// -- Public -- //
 router.get(
     "/",
-    auth,
+    validate(getMatchesQuerySchema, "query"),
     matchController.getAllMatches.bind(matchController)
 );
 
 router.get(
     "/:id",
-    auth,
     validate(idParamSchema, "params"),
     matchController.getMatchById.bind(matchController)
 );

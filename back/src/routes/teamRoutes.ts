@@ -54,14 +54,10 @@ router.delete(
 );
 
 // -- Public -- //
-router.get("/", auth, teamController.getAllTeams.bind(teamController));
+router.get("/", teamController.getAllTeams.bind(teamController));
 
-router.get("/:id", auth, teamController.getTeamById.bind(teamController));
+router.get("/:id", teamController.getTeamById.bind(teamController));
 
-router.get(
-    "/:id/users",
-    auth,
-    teamController.getUsersOfTeam.bind(teamController)
-);
+router.get("/:id/users", teamController.getUsersOfTeam.bind(teamController));
 
 export default router;

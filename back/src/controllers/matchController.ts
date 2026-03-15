@@ -1,6 +1,7 @@
 import AbstractController from "./abstractController";
 import MatchService, { CreateMatchInput } from "../services/matchService";
 import { Request, Response } from "express";
+import { GetMatchesQuery } from "../validators/matchValidators";
 
 class MatchController extends AbstractController {
     private readonly matchService = new MatchService();
@@ -12,7 +13,8 @@ class MatchController extends AbstractController {
      * @returns {Promise<Response>}
      */
     public async getAllMatches(req: Request, res: Response): Promise<Response> {
-        const matches = await this.matchService.getAllMatches();
+        const { date } = req.query as GetMatchesQuery;
+        const matches = await this.matchService.getAllMatches(date);
         return this.ok(res, matches);
     }
 

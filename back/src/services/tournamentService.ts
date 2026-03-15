@@ -1,3 +1,4 @@
+import { Op, fn, col, where as seqWhere } from "sequelize";
 import AbstractService from "./abstractService";
 import { Tournament } from "../models/tournamentModel";
 import { Team } from "../models/teamModel";
@@ -20,8 +21,17 @@ export default class TournamentService extends AbstractService {
      * Get all tournaments
      * @returns {Promise<Tournament[]>}
      */
-    public async getAllTournaments(): Promise<Tournament[]> {
-        return this.findAll(Tournament);
+    public async getAllTournaments(date?: string): Promise<Tournament[]> {
+        if (!date) return this.findAll(Tournament)
+
+        // Return tournaments whose range covers the given day
+        const day = new Date(date)
+        return this.findAll(Tournament, {
+            where: {
+                startDate: { [Op.lte]: day },
+                endDate:   { [Op.gte]: day },
+            },
+        })
     }
 
     /**
@@ -188,17 +198,28 @@ export default class TournamentService extends AbstractService {
      * @returns {Promise<Match[]>}
      */
     public async getMatchesOfTournament(
-        tournamentId: number
+        tournamentId: number,
+        date?: string,
     ): Promise<Match[]> {
         await this.findByIdOrThrow(Tournament, tournamentId, undefined, {
             notFoundMessage: "Tournament not found",
-        });
+        })
+
+        const where: Record<symbol | string, unknown> = { tournamentId }
+        if (date) {
+            // Use MySQL DATE() to compare only the date part, avoiding timezone issues
+            where[Op.and] = seqWhere(fn("DATE", col("date")), date)
+        }
+
+        // Hard cap at 50 results to avoid abusive payloads
         return this.findAll(Match, {
-            where: { tournamentId },
+            where,
             include: [
                 { model: Team, as: "homeTeam", attributes: ["id", "name"] },
                 { model: Team, as: "awayTeam", attributes: ["id", "name"] },
             ],
-        }) as Promise<Match[]>;
+            limit: 50,
+            order: [["date", "ASC"]],
+        }) as Promise<Match[]>
     }
 }

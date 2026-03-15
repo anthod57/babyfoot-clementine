@@ -4,6 +4,8 @@ import tournamentController from "../controllers/tournamentController";
 import {
     createTournamentSchema,
     updateTournamentSchema,
+    getTournamentsQuerySchema,
+    getTournamentMatchesQuerySchema,
 } from "../validators/tournamentValidators";
 import { idParamSchema } from "../validators";
 import { auth, requireRole } from "../middlewares/auth";
@@ -58,26 +60,24 @@ router.post(
 // -- Public -- //
 router.get(
     "/",
-    auth,
+    validate(getTournamentsQuerySchema, "query"),
     tournamentController.getAllTournaments.bind(tournamentController)
 );
 
 router.get(
     "/:id",
-    auth,
     tournamentController.getTournamentById.bind(tournamentController)
 );
 
 router.get(
     "/:id/teams",
-    auth,
     tournamentController.getTeamsOfTournament.bind(tournamentController)
 );
 
 router.get(
     "/:id/matches",
-    auth,
     validate(idParamSchema, "params"),
+    validate(getTournamentMatchesQuerySchema, "query"),
     tournamentController.getMatchesOfTournament.bind(tournamentController)
 );
 

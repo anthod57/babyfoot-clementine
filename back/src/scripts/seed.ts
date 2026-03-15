@@ -144,13 +144,20 @@ async function seed(): Promise<void> {
         }
         console.log(`${assignments} user-team assignments created.`);
 
-        // Tournaments
+        // Tournaments — spread across past (-90d), present, and future (+90d) for a
+        // realistic dataset: some tournaments already have results, others are ongoing
+        // or upcoming.
         const now = new Date();
         const tournaments: Tournament[] = [];
         for (let i = 0; i < NB_TOURNAMENTS; i++) {
-            const startDate = faker.date.soon({ days: 30, refDate: now });
-            const endDate = faker.date.soon({ days: 60, refDate: startDate });
-            const name = `Tournoi ${faker.word.adjective()} ${i + 1}`;
+            // refDate ranges from 90 days ago to 60 days from now
+            const refDate = faker.date.between({
+                from: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+                to:   new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
+            });
+            const startDate = faker.date.soon({ days: 5, refDate });
+            const endDate   = faker.date.soon({ days: 30, refDate: startDate });
+            const name        = `Tournoi ${faker.word.adjective()} ${i + 1}`;
             const description = faker.lorem.sentence();
             const [tournament] = await Tournament.findOrCreate({
                 where: { name },
@@ -179,9 +186,81 @@ async function seed(): Promise<void> {
                 }
             }
         }
-        console.log(
-            `${participations} team-tournament participations created.`
-        );
+        console.log(`${participations} team-tournament participations created.`);
+
+        // Matches — max 4 per day, scheduled at clean hours (10h, 12h, 14h, 16h).
+        // We walk through each day of the tournament and consume team pairs one by one
+        // until we run out of unique pairs or reach the end date. Past matches get a
+        // random result and realistic scores; future matches stay PENDING with score 0-0.
+        const MATCH_SLOTS   = [10, 12, 14, 16]; // hours — max 4 matches/day
+        const MAX_PER_DAY   = MATCH_SLOTS.length;
+
+        function pickScores(result: MatchResult): { homeScore: number; awayScore: number } {
+            if (result === MatchResult.PENDING) return { homeScore: 0, awayScore: 0 };
+            const winner = faker.number.int({ min: 1, max: 10 });
+            const loser  = faker.number.int({ min: 0, max: winner - 1 });
+            if (result === MatchResult.DRAW) return { homeScore: winner, awayScore: winner };
+            return result === MatchResult.HOME_TEAM_WIN
+                ? { homeScore: winner, awayScore: loser }
+                : { homeScore: loser,  awayScore: winner };
+        }
+
+        let totalMatches = 0;
+        for (const tournament of tournaments) {
+            const participatingTeams = await TeamTournamentParticipation.findAll({
+                where: { tournamentId: tournament.id },
+            });
+            const teamIds = participatingTeams.map((p) => p.teamId);
+            if (teamIds.length < 2) continue;
+
+            // Build every unique pair once, then shuffle for variety
+            const pairs: [number, number][] = [];
+            for (let i = 0; i < teamIds.length; i++) {
+                for (let j = i + 1; j < teamIds.length; j++) {
+                    pairs.push([teamIds[i]!, teamIds[j]!]);
+                }
+            }
+            pairs.sort(() => Math.random() - 0.5);
+
+            // Walk day by day and assign up to MAX_PER_DAY pairs per day
+            const day = new Date(tournament.startDate);
+            day.setHours(0, 0, 0, 0);
+            const end = new Date(tournament.endDate);
+            end.setHours(0, 0, 0, 0);
+
+            let pairIdx = 0;
+            while (day <= end && pairIdx < pairs.length) {
+                const count = Math.min(MAX_PER_DAY, pairs.length - pairIdx);
+                for (let s = 0; s < count; s++) {
+                    const [homeTeamId, awayTeamId] = pairs[pairIdx++]!;
+                    const matchDate = new Date(day);
+                    matchDate.setHours(MATCH_SLOTS[s]!, 0, 0, 0);
+
+                    const isPast  = matchDate < now;
+                    const result  = isPast
+                        ? faker.helpers.arrayElement([
+                            MatchResult.HOME_TEAM_WIN,
+                            MatchResult.AWAY_TEAM_WIN,
+                            MatchResult.DRAW,
+                          ])
+                        : MatchResult.PENDING;
+                    const { homeScore, awayScore } = pickScores(result);
+
+                    await Match.create({
+                        tournamentId: tournament.id,
+                        date: matchDate,
+                        homeTeamId,
+                        awayTeamId,
+                        homeScore,
+                        awayScore,
+                        result,
+                    });
+                    totalMatches++;
+                }
+                day.setDate(day.getDate() + 1);
+            }
+        }
+        console.log(`${totalMatches} matches created.`);
 
         console.log("\nSeed completed.");
     } catch (err) {

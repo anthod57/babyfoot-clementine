@@ -42,16 +42,8 @@ export const createMatchSchema = matchBaseSchema.refine(
 export const updateMatchSchema = z
     .object({
         date: z.coerce.date().optional(),
-        homeTeamId: z.coerce
-            .number()
-            .int()
-            .positive()
-            .optional(),
-        awayTeamId: z.coerce
-            .number()
-            .int()
-            .positive()
-            .optional(),
+        homeTeamId: z.coerce.number().int().positive().optional(),
+        awayTeamId: z.coerce.number().int().positive().optional(),
         homeScore: scoreSchema.optional(),
         awayScore: scoreSchema.optional(),
         result: matchResultSchema.optional(),
@@ -69,5 +61,13 @@ export const updateMatchSchema = z
         }
     );
 
+export const getMatchesQuerySchema = z.object({
+    date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "date must be in YYYY-MM-DD format")
+        .optional(),
+});
+
+export type GetMatchesQuery = z.infer<typeof getMatchesQuerySchema>;
 export type CreateMatchInput = z.infer<typeof createMatchSchema>;
 export type UpdateMatchInput = z.infer<typeof updateMatchSchema>;

@@ -25,6 +25,19 @@ export const tournamentTeamIdsSchema = z.object({
         .positive("Team ID must be a positive integer"),
 });
 
+const dateQueryField = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "date must be in YYYY-MM-DD format")
+    .optional()
+
+/** Query params for GET /tournaments — tournaments active on a given day */
+export const getTournamentsQuerySchema = z.object({ date: dateQueryField })
+
+/** Query params for GET /tournaments/:id/matches — matches of a tournament on a given day */
+export const getTournamentMatchesQuerySchema = z.object({ date: dateQueryField })
+
+export type GetTournamentsQuery = z.infer<typeof getTournamentsQuerySchema>
+export type GetTournamentMatchesQuery = z.infer<typeof getTournamentMatchesQuerySchema>
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
 export type UpdateTournamentInput = z.infer<typeof updateTournamentSchema>;
 export type TournamentTeamIdsInput = z.infer<typeof tournamentTeamIdsSchema>;

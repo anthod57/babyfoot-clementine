@@ -3,6 +3,10 @@ import TournamentService, {
     CreateTournamentInput,
 } from "../services/tournamentService";
 import { Request, Response } from "express";
+import {
+    GetTournamentsQuery,
+    GetTournamentMatchesQuery,
+} from "../validators/tournamentValidators";
 
 /**
  * Tournament controller class
@@ -21,7 +25,8 @@ class TournamentController extends AbstractController {
         req: Request,
         res: Response
     ): Promise<Response> {
-        const tournaments = await this.tournamentService.getAllTournaments();
+        const { date } = req.query as GetTournamentsQuery;
+        const tournaments = await this.tournamentService.getAllTournaments(date);
         return this.ok(res, tournaments);
     }
 
@@ -180,7 +185,8 @@ class TournamentController extends AbstractController {
     ): Promise<Response> {
         const { id } = req.params as unknown as { id: number };
 
-        const matches = await this.tournamentService.getMatchesOfTournament(id);
+        const { date } = req.query as GetTournamentMatchesQuery;
+        const matches = await this.tournamentService.getMatchesOfTournament(id, date);
 
         return this.ok(res, matches);
     }

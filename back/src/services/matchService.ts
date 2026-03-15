@@ -1,9 +1,9 @@
+import { fn, col, where as seqWhere } from "sequelize";
 import AbstractService from "./abstractService";
 import { ValidationError } from "../middlewares/errorHandler";
-import { Match } from "../models/matchModel";
+import { Match, MatchResult } from "../models/matchModel";
 import { Team } from "../models/teamModel";
 import { Tournament } from "../models/tournamentModel";
-import { MatchResult } from "../models/matchModel";
 
 export type CreateMatchInput = {
     tournamentId: number;
@@ -27,8 +27,17 @@ export default class MatchService extends AbstractService {
      * Get all matches
      * @returns {Promise<Match[]>}
      */
-    public async getAllMatches(): Promise<Match[]> {
-        return this.findAll(Match, MATCH_INCLUDE_TEAMS) as Promise<Match[]>;
+    public async getAllMatches(date?: string): Promise<Match[]> {
+        // Hard cap at 50 results to avoid abusive payloads
+        const BASE_OPTIONS = { ...MATCH_INCLUDE_TEAMS, limit: 50, order: [["date", "ASC"]] as [string, string][] };
+
+        if (!date) return this.findAll(Match, BASE_OPTIONS) as Promise<Match[]>;
+
+        // Use MySQL DATE() to compare only the date part, avoiding timezone issues
+        return this.findAll(Match, {
+            ...BASE_OPTIONS,
+            where: seqWhere(fn("DATE", col("date")), date),
+        }) as Promise<Match[]>;
     }
 
     /**

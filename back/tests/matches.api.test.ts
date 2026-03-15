@@ -36,15 +36,29 @@ describe("Matches API", () => {
     });
 
     describe("Authentication", () => {
-        it("GET / should return 401 without token", async () => {
+        it("GET / should return 200 without token", async () => {
             const res = await request(app).get(BASE);
-            expect(res.status).toBe(401);
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
         });
 
-        it("GET / should return 401 with invalid token", async () => {
+        it("GET / should return 200 with an invalid token", async () => {
             const res = await request(app)
                 .get(BASE)
                 .set("Authorization", "Bearer invalid-token");
+            expect(res.status).toBe(200);
+        });
+
+        it("POST / should return 401 without token", async () => {
+            const res = await request(app).post(BASE).send({});
+            expect(res.status).toBe(401);
+        });
+
+        it("POST / should return 401 with invalid token", async () => {
+            const res = await request(app)
+                .post(BASE)
+                .set("Authorization", "Bearer invalid-token")
+                .send({});
             expect(res.status).toBe(401);
         });
     });
@@ -155,6 +169,82 @@ describe("Matches API", () => {
             expect(res.body.homeTeam).toBeDefined();
             expect(res.body.awayTeam).toBeDefined();
             createdMatchId = res.body.id;
+        });
+    });
+
+    describe("GET / - date filter", () => {
+        const DATE_A = "2025-07-15"; // same date as createdMatch (created in POST block)
+        const DATE_B = "2025-09-10"; // different day — must return nothing when filtering on DATE_A
+        let matchOnDateBId: number;
+
+        beforeAll(async () => {
+            const res = await request(app)
+                .post(BASE)
+                .set("Authorization", `Bearer ${token}`)
+                .send({
+                    tournamentId,
+                    date: `${DATE_B}T10:00:00.000Z`,
+                    homeTeamId,
+                    awayTeamId,
+                });
+            matchOnDateBId = res.body.id;
+        });
+
+        afterAll(async () => {
+            await request(app)
+                .delete(`${BASE}/${matchOnDateBId}`)
+                .set("Authorization", `Bearer ${token}`);
+        });
+
+        it("should return 400 for an invalid date format", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=15-07-2025`) // DD-MM-YYYY is not valid
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).toBe(400);
+        });
+
+        it("should return only matches on DATE_A when filtering by DATE_A", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=${DATE_A}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body.length).toBeGreaterThan(0);
+
+            // Every returned match must fall on DATE_A
+            for (const match of res.body as Array<{ date: string }>) {
+                expect(match.date.slice(0, 10)).toBe(DATE_A);
+            }
+        });
+
+        it("should not include the DATE_B match when filtering by DATE_A", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=${DATE_A}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            const ids = (res.body as Array<{ id: number }>).map(m => m.id);
+            expect(ids).not.toContain(matchOnDateBId);
+        });
+
+        it("should return only the DATE_B match when filtering by DATE_B", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=${DATE_B}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            const ids = (res.body as Array<{ id: number }>).map(m => m.id);
+            expect(ids).toContain(matchOnDateBId);
+            expect(ids).not.toContain(createdMatchId);
+        });
+
+        it("should return an empty array when no match exists on the given date", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=2099-12-31`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual([]);
         });
     });
 
