@@ -5,7 +5,7 @@ import ButtonComponent from "@/components/common/ButtonComponent.vue";
 <template>
     <section
         aria-label="Présentation du championnat"
-        class="relative h-[500px] lg:h-auto lg:aspect-16/7 lg:min-h-[500px] w-full overflow-hidden"
+        class="relative h-auto lg:h-auto lg:aspect-16/7 lg:min-h-[500px] w-full overflow-hidden"
     >
         <img
             src="/images/hero_bg.jpg"
@@ -35,9 +35,13 @@ import ButtonComponent from "@/components/common/ButtonComponent.vue";
                 enim ad minim veniam, quis nostrud exercitation ullamco laboris
                 nisi ut aliquip ex ea commodo consequat.
             </p>
-            <ButtonComponent variant="primary" size="lg"
-                >En savoir plus</ButtonComponent
+            <ButtonComponent
+                variant="primary"
+                size="lg"
+                aria-label="En savoir plus sur le championnat CLEMENTINE"
             >
+                En savoir plus
+            </ButtonComponent>
         </div>
     </section>
 </template>

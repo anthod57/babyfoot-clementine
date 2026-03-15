@@ -34,16 +34,19 @@ describe("Teams API", () => {
     });
 
     describe("Authentication", () => {
-        it("GET / should return 401 without token", async () => {
+        // GET / is a public route — no token required
+        it("GET / should return 200 without token", async () => {
             const res = await request(app).get(BASE);
-            expect(res.status).toBe(401);
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty("data");
+            expect(Array.isArray(res.body.data)).toBe(true);
         });
 
-        it("GET / should return 401 with invalid token", async () => {
+        it("GET / should return 200 with invalid token (public route)", async () => {
             const res = await request(app)
                 .get(BASE)
                 .set("Authorization", "Bearer invalid-token");
-            expect(res.status).toBe(401);
+            expect(res.status).toBe(200);
         });
     });
 
@@ -53,7 +56,8 @@ describe("Teams API", () => {
                 .get(BASE)
                 .set("Authorization", `Bearer ${token}`);
             expect(res.status).toBe(200);
-            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body).toHaveProperty("data");
+            expect(Array.isArray(res.body.data)).toBe(true);
         });
     });
 

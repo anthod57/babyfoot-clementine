@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-/** Match result: 0=Pending, 1=HomeTeamWin, 2=AwayTeamWin, 3=Draw */
+/** Match result: 0=Pending, 1=HomeTeamWin, 2=AwayTeamWin, 3=Draw, 4=InProgress */
 export const matchResultSchema = z
     .number()
     .int()
-    .min(0, "Result must be 0-3")
-    .max(3, "Result must be 0-3");
+    .min(0, "Result must be 0-4")
+    .max(4, "Result must be 0-4");
 
 const scoreSchema = z.coerce
     .number()
@@ -65,6 +65,13 @@ export const getMatchesQuerySchema = z.object({
     date: z
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/, "date must be in YYYY-MM-DD format")
+        .optional(),
+    /** Filter by result value (0=Pending, 1=HomeWin, 2=AwayWin, 3=Draw, 4=InProgress) */
+    result: z.coerce.number().int().min(0).max(4).optional(),
+    /** If true, only return pending matches scheduled in the future (date > NOW()) */
+    upcoming: z
+        .enum(["true", "false"])
+        .transform(v => v === "true")
         .optional(),
 });
 

@@ -1,6 +1,8 @@
 import app from "./app";
 import { env } from "./config/env";
 import { sequelize } from "./config/database";
+import { User } from "./models";
+import { runSeed } from "./scripts/seed";
 import "./models";
 
 const DB_RETRY_DELAY_MS = 2000;
@@ -31,6 +33,14 @@ async function connectWithRetry(): Promise<void> {
 async function bootstrap(): Promise<void> {
     await connectWithRetry();
     await sequelize.sync();
+
+    if (process.env.SEED_IF_EMPTY === "true") {
+        const userCount = await User.count();
+        if (userCount === 0) {
+            console.log("Database empty — running seed…");
+            await runSeed(false);
+        }
+    }
 
     const server = app.listen(env.PORT, () => {
         console.log(`Server running on port ${env.PORT} (${env.NODE_ENV})`);

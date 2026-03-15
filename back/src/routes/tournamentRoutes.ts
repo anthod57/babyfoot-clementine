@@ -6,6 +6,7 @@ import {
     updateTournamentSchema,
     getTournamentsQuerySchema,
     getTournamentMatchesQuerySchema,
+    addTeamToTournamentSchema,
 } from "../validators/tournamentValidators";
 import { idParamSchema } from "../validators";
 import { auth, requireRole } from "../middlewares/auth";
@@ -40,6 +41,7 @@ router.post(
     "/:id/teams",
     auth,
     requireRole("admin"),
+    validate(addTeamToTournamentSchema),
     tournamentController.addTeamToTournament.bind(tournamentController)
 );
 

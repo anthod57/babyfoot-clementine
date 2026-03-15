@@ -96,6 +96,7 @@ describe("Users API", () => {
         it("should return 400 when username is missing", async () => {
             const res = await request(app)
                 .post(BASE)
+                .set("Authorization", `Bearer ${adminToken}`)
                 .send({
                     name: "New",
                     surname: "User",
@@ -109,6 +110,7 @@ describe("Users API", () => {
         it("should return 400 when email is invalid", async () => {
             const res = await request(app)
                 .post(BASE)
+                .set("Authorization", `Bearer ${adminToken}`)
                 .send({
                     username: `newuser_${uniqueSuffix}`,
                     name: "New",
@@ -122,6 +124,7 @@ describe("Users API", () => {
         it("should return 400 when password is too short", async () => {
             const res = await request(app)
                 .post(BASE)
+                .set("Authorization", `Bearer ${adminToken}`)
                 .send({
                     username: `newuser_${uniqueSuffix}`,
                     name: "New",
@@ -135,6 +138,7 @@ describe("Users API", () => {
         it("should create a user and return 201", async () => {
             const res = await request(app)
                 .post(BASE)
+                .set("Authorization", `Bearer ${adminToken}`)
                 .send({
                     username: `newuser_${uniqueSuffix}`,
                     name: "New",
@@ -157,6 +161,7 @@ describe("Users API", () => {
         it("should return 400 when email already exists", async () => {
             const res = await request(app)
                 .post(BASE)
+                .set("Authorization", `Bearer ${adminToken}`)
                 .send({
                     username: `other_${uniqueSuffix}`,
                     name: "Other",
@@ -170,6 +175,7 @@ describe("Users API", () => {
         it("should return 400 when username already exists", async () => {
             const res = await request(app)
                 .post(BASE)
+                .set("Authorization", `Bearer ${adminToken}`)
                 .send({
                     username: `newuser_${uniqueSuffix}`,
                     name: "Other",

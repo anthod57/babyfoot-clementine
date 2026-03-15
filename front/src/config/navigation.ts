@@ -1,3 +1,4 @@
+/** Header nav item. */
 export interface NavLink {
     label: string;
     to: string;
@@ -5,7 +6,5 @@ export interface NavLink {
 
 export const navLinks: NavLink[] = [
     { label: "Accueil", to: "/" },
-    { label: "Matchs", to: "/matchs" },
-    { label: "Classement", to: "/ranking" },
-    { label: "Équipes", to: "/teams" },
+    { label: "Tournois", to: "/tournaments" },
 ];

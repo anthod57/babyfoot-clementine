@@ -25,13 +25,22 @@ export const tournamentTeamIdsSchema = z.object({
         .positive("Team ID must be a positive integer"),
 });
 
+export const addTeamToTournamentSchema = z.object({
+    teamId: z.coerce.number().int().positive("Team ID must be a positive integer"),
+});
+
 const dateQueryField = z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "date must be in YYYY-MM-DD format")
-    .optional()
+    .optional();
 
-/** Query params for GET /tournaments — tournaments active on a given day */
-export const getTournamentsQuerySchema = z.object({ date: dateQueryField })
+/** Query params for GET /tournaments — pagination, search, optional date filter */
+export const getTournamentsQuerySchema = z.object({
+    date: dateQueryField,
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    search: z.string().max(255).optional(),
+});
 
 /** Query params for GET /tournaments/:id/matches — matches of a tournament on a given day */
 export const getTournamentMatchesQuerySchema = z.object({ date: dateQueryField })

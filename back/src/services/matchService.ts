@@ -1,9 +1,10 @@
-import { fn, col, where as seqWhere } from "sequelize";
+import { Op, fn, col, where as seqWhere } from "sequelize";
 import AbstractService from "./abstractService";
 import { ValidationError } from "../middlewares/errorHandler";
 import { Match, MatchResult } from "../models/matchModel";
 import { Team } from "../models/teamModel";
 import { Tournament } from "../models/tournamentModel";
+import { User } from "../models/userModel";
 
 export type CreateMatchInput = {
     tournamentId: number;
@@ -17,8 +18,32 @@ export type CreateMatchInput = {
 
 const MATCH_INCLUDE_TEAMS = {
     include: [
-        { model: Team, as: "homeTeam", attributes: ["id", "name"] },
-        { model: Team, as: "awayTeam", attributes: ["id", "name"] },
+        {
+            model: Team,
+            as: "homeTeam",
+            attributes: ["id", "name"],
+            include: [
+                {
+                    model: User,
+                    as: "users",
+                    attributes: ["name", "surname"],
+                    through: { attributes: [] },
+                },
+            ],
+        },
+        {
+            model: Team,
+            as: "awayTeam",
+            attributes: ["id", "name"],
+            include: [
+                {
+                    model: User,
+                    as: "users",
+                    attributes: ["name", "surname"],
+                    through: { attributes: [] },
+                },
+            ],
+        },
     ],
 };
 
@@ -27,16 +52,44 @@ export default class MatchService extends AbstractService {
      * Get all matches
      * @returns {Promise<Match[]>}
      */
-    public async getAllMatches(date?: string): Promise<Match[]> {
-        // Hard cap at 50 results to avoid abusive payloads
-        const BASE_OPTIONS = { ...MATCH_INCLUDE_TEAMS, limit: 50, order: [["date", "ASC"]] as [string, string][] };
+    public async getAllMatches(
+        filters: { date?: string; result?: number; upcoming?: boolean } = {}
+    ): Promise<Match[]> {
+        const { date, result, upcoming } = filters;
 
-        if (!date) return this.findAll(Match, BASE_OPTIONS) as Promise<Match[]>;
+        // 50 results limit to avoid abuses
+        const BASE_OPTIONS = {
+            ...MATCH_INCLUDE_TEAMS,
+            limit: 50,
+            order: [["date", "ASC"]] as [string, string][],
+        };
 
-        // Use MySQL DATE() to compare only the date part, avoiding timezone issues
+        // Build conditions as an array merged under Op.and
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const conditions: any[] = [];
+
+        if (result !== undefined) {
+            conditions.push({ result });
+        }
+
+        if (date) {
+            // Use MySQL DATE() to compare only the date part, avoiding timezone issues
+            conditions.push(seqWhere(fn("DATE", col("date")), date));
+        }
+
+        if (upcoming) {
+            // Only pending matches scheduled strictly in the future
+            conditions.push({ result: MatchResult.PENDING });
+            conditions.push({ date: { [Op.gt]: new Date() } });
+        }
+
+        if (!conditions.length) {
+            return this.findAll(Match, BASE_OPTIONS) as Promise<Match[]>;
+        }
+
         return this.findAll(Match, {
             ...BASE_OPTIONS,
-            where: seqWhere(fn("DATE", col("date")), date),
+            where: { [Op.and]: conditions },
         }) as Promise<Match[]>;
     }
 
@@ -127,7 +180,6 @@ export default class MatchService extends AbstractService {
             );
         }
 
-        // Update match
         const homeTeamId = match.homeTeamId ?? existing.homeTeamId;
         const awayTeamId = match.awayTeamId ?? existing.awayTeamId;
 
@@ -139,26 +191,17 @@ export default class MatchService extends AbstractService {
 
         const updateData: Partial<Match> = {};
 
-        // If date is provided
         if (match.date !== undefined) updateData.date = match.date;
-
-        // If home team id is provided
         if (match.homeTeamId !== undefined)
             updateData.homeTeamId = match.homeTeamId;
-
-        // If away team id is provided
         if (match.awayTeamId !== undefined)
             updateData.awayTeamId = match.awayTeamId;
 
         // If homeScore is provided
         if (match.homeScore !== undefined)
             updateData.homeScore = match.homeScore;
-
-        // If awayScore is provided
         if (match.awayScore !== undefined)
             updateData.awayScore = match.awayScore;
-
-        // If result is provided
         if (match.result !== undefined) updateData.result = match.result;
 
         await this.update(

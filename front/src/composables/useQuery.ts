@@ -11,13 +11,10 @@ interface UseQueryOptions<T> {
 }
 
 /**
- * Use a query to fetch data
+ * Fetches data and tracks loading/error state. Supports watch triggers.
  * @param {Fetcher<T>} fetcher
- * @param {UseQueryOptions<T>} options
- * @returns {Ref<T | null>}
- * @returns {Ref<Error | null>}
- * @returns {Ref<boolean>}
- * @returns {Function}
+ * @param {UseQueryOptions<T>} [options]
+ * @returns {{ data: Ref<T|null>, error: Ref<Error|null>, isPending: Ref<boolean>, refresh: () => Promise<void> }}
  */
 export function useQuery<T>(
     fetcher: Fetcher<T>,
@@ -29,8 +26,10 @@ export function useQuery<T>(
 
     let controller: AbortController | null = null;
 
+    /**
+     * Runs the fetcher and updates data/error/loading.
+     */
     async function execute(): Promise<void> {
-        // Cancel any in-flight request before starting a new one
         controller?.abort();
         controller = new AbortController();
 
@@ -39,9 +38,9 @@ export function useQuery<T>(
 
         try {
             const result = await fetcher(controller.signal);
+
             data.value = options.transform ? options.transform(result) : result;
         } catch (err) {
-            // AbortError is expected on cancel — not a real error
             if ((err as Error).name !== "AbortError") {
                 error.value = err as Error;
             }

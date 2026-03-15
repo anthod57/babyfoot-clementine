@@ -7,6 +7,7 @@ withDefaults(
         loading?: boolean;
         type?: "button" | "submit" | "reset";
         full?: boolean;
+        ariaLabel?: string;
     }>(),
     {
         variant: "primary",
@@ -15,6 +16,7 @@ withDefaults(
         loading: false,
         type: "button",
         full: false,
+        ariaLabel: undefined,
     }
 );
 
@@ -27,6 +29,7 @@ defineEmits<{ click: [event: MouseEvent] }>();
         :disabled="disabled || loading"
         :aria-busy="loading || undefined"
         :aria-disabled="disabled || loading || undefined"
+        :aria-label="ariaLabel ?? undefined"
         :class="[
             'cursor-pointer inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 select-none',
             size === 'sm' && 'px-3 py-1.5 text-sm',

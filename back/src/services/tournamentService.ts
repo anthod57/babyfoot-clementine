@@ -1,5 +1,6 @@
 import { Op, fn, col, where as seqWhere } from "sequelize";
 import AbstractService from "./abstractService";
+import { sequelize } from "../config/database";
 import { Tournament } from "../models/tournamentModel";
 import { Team } from "../models/teamModel";
 import { Match, MatchResult } from "../models/matchModel";
@@ -16,22 +17,55 @@ export type CreateTournamentInput = {
     endDate: Date;
 };
 
+export type PaginatedTournamentsResult = {
+    data: Tournament[];
+    total: number;
+    page: number;
+    limit: number;
+};
+
+/** Serializes schedule-matches requests per tournament to prevent concurrent transactions. */
+const scheduleLocks = new Map<number, Promise<Match[]>>();
+
 export default class TournamentService extends AbstractService {
     /**
-     * Get all tournaments
-     * @returns {Promise<Tournament[]>}
+     * Get all tournaments with pagination, search and optional date filter
      */
-    public async getAllTournaments(date?: string): Promise<Tournament[]> {
-        if (!date) return this.findAll(Tournament)
+    public async getAllTournaments(
+        opts: { date?: string; page?: number; limit?: number; search?: string } = {}
+    ): Promise<Tournament[] | PaginatedTournamentsResult> {
+        const { date, page = 1, limit = 20, search } = opts;
+        const ORDER = [["startDate", "ASC"]] as [string, string][];
+        const offset = (page - 1) * limit;
 
-        // Return tournaments whose range covers the given day
-        const day = new Date(date)
-        return this.findAll(Tournament, {
-            where: {
-                startDate: { [Op.lte]: day },
-                endDate:   { [Op.gte]: day },
-            },
-        })
+        const whereConditions: unknown[] = [];
+
+        if (date) {
+            whereConditions.push(
+                seqWhere(fn("DATE", col("start_date")), { [Op.lte]: date }),
+                seqWhere(fn("DATE", col("end_date")), { [Op.gte]: date })
+            );
+        }
+
+        if (search?.trim()) {
+            const term = `%${search.trim()}%`;
+            whereConditions.push({
+                [Op.or]: [
+                    { name: { [Op.like]: term } },
+                    { description: { [Op.like]: term } },
+                ],
+            } as Record<string, unknown>);
+        }
+
+        const where = whereConditions.length > 0 ? { [Op.and]: whereConditions } : {};
+
+        const { count, rows } = await Tournament.findAndCountAll({
+            where,
+            order: ORDER,
+            limit,
+            offset,
+        });
+        return { data: rows, total: count, page, limit };
     }
 
     /**
@@ -100,7 +134,7 @@ export default class TournamentService extends AbstractService {
             notFoundMessage: "Tournament not found",
         });
         return this.findAll(Team, {
-            include: [{ model: Tournament, where: { id } }],
+            include: [{ model: Tournament, as: "tournaments", where: { id } }],
         });
     }
 
@@ -158,38 +192,66 @@ export default class TournamentService extends AbstractService {
     }
 
     /**
-     * Schedule matches for a tournament
+     * Schedule matches for a tournament. Replaces any existing matches.
+     * Uses bulk insert and transaction for performance and consistency.
+     * Serializes concurrent calls per tournament to prevent lock contention and stuck requests.
      * @param {number} tournamentId
      * @returns {Promise<Match[]>}
      */
     public async scheduleMatchesForTournament(
         tournamentId: number
     ): Promise<Match[]> {
-        const matches = await this.generateRoundRobinMatchesForTournament(
+        const previous = scheduleLocks.get(tournamentId) ?? Promise.resolve();
+        const promise = previous
+            .then(() => this.doScheduleMatchesForTournament(tournamentId))
+            .finally(() => {
+                if (scheduleLocks.get(tournamentId) === promise) {
+                    scheduleLocks.delete(tournamentId);
+                }
+            });
+        scheduleLocks.set(tournamentId, promise);
+        return promise;
+    }
+
+    private async doScheduleMatchesForTournament(
+        tournamentId: number
+    ): Promise<Match[]> {
+        const fixtures = await this.generateRoundRobinMatchesForTournament(
             tournamentId
         );
 
-        const promises = matches.map(async match => {
-            await this.create(Match, {
-                tournamentId,
-                homeTeamId: match.homeTeamId,
-                awayTeamId: match.awayTeamId,
-                homeScore: 0,
-                awayScore: 0,
-                result: MatchResult.PENDING,
-                date: new Date(),
+        return sequelize.transaction(async t => {
+            await Match.destroy({
+                where: { tournamentId },
+                transaction: t,
             });
+
+            if (fixtures.length === 0) return [];
+
+            const now = new Date();
+            await Match.bulkCreate(
+                fixtures.map(f => ({
+                    tournamentId,
+                    homeTeamId: f.homeTeamId,
+                    awayTeamId: f.awayTeamId,
+                    homeScore: 0,
+                    awayScore: 0,
+                    result: MatchResult.PENDING,
+                    date: now,
+                })),
+                { transaction: t }
+            );
+
+            return this.findAll(Match, {
+                where: { tournamentId },
+                include: [
+                    { model: Team, as: "homeTeam", attributes: ["id", "name"] },
+                    { model: Team, as: "awayTeam", attributes: ["id", "name"] },
+                ],
+                order: [["id", "ASC"]],
+                transaction: t,
+            }) as Promise<Match[]>;
         });
-
-        await Promise.all(promises);
-
-        return this.findAll(Match, {
-            where: { tournamentId },
-            include: [
-                { model: Team, as: "homeTeam", attributes: ["id", "name"] },
-                { model: Team, as: "awayTeam", attributes: ["id", "name"] },
-            ],
-        }) as Promise<Match[]>;
     }
 
     /**
@@ -211,14 +273,14 @@ export default class TournamentService extends AbstractService {
             where[Op.and] = seqWhere(fn("DATE", col("date")), date)
         }
 
-        // Hard cap at 50 results to avoid abusive payloads
+        // Cap at 500 (round-robin 16 teams = 120, 32 teams = 496)
         return this.findAll(Match, {
             where,
             include: [
                 { model: Team, as: "homeTeam", attributes: ["id", "name"] },
                 { model: Team, as: "awayTeam", attributes: ["id", "name"] },
             ],
-            limit: 50,
+            limit: 500,
             order: [["date", "ASC"]],
         }) as Promise<Match[]>
     }

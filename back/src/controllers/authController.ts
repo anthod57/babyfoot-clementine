@@ -18,7 +18,8 @@ class AuthController extends AbstractController {
             const result = await this.authService.login(email, password);
 
             return this.ok(res, result);
-        } catch (err: unknown) {
+        }
+        catch (err: unknown) {
             if (err instanceof Error) {
                 return this.unauthorized(res, err.message);
             }

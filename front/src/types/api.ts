@@ -3,6 +3,7 @@ export const MatchResult = {
     HomeWin: 1,
     AwayWin: 2,
     Draw: 3,
+    InProgress: 4,
 } as const;
 
 export type MatchResult = (typeof MatchResult)[keyof typeof MatchResult];

@@ -10,14 +10,24 @@ class TeamController extends AbstractController {
     private readonly teamService = new TeamService();
 
     /**
-     * Get all teams
+     * Get all teams (paginated)
      * @param {Request} req
      * @param {Response} res
      * @returns {Promise<Response>}
      */
     public async getAllTeams(req: Request, res: Response): Promise<Response> {
-        const teams = await this.teamService.getAllTeams();
-        return this.ok(res, teams);
+        const { page, limit, search } = req.query as unknown as {
+            page?: number;
+            limit?: number;
+            search?: string;
+        };
+
+        const result = await this.teamService.getAllTeams(
+            page ?? 1,
+            limit ?? 10,
+            search
+        );
+        return this.ok(res, result);
     }
 
     /**
@@ -29,6 +39,7 @@ class TeamController extends AbstractController {
     public async getTeamById(req: Request, res: Response): Promise<Response> {
         const { id } = req.params as unknown as { id: number };
         const team = await this.teamService.getTeamById(id);
+
         if (!team) {
             return this.notFound(res, "Team not found");
         }

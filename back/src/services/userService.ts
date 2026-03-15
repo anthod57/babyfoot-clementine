@@ -1,3 +1,4 @@
+import { NotFoundError } from "../middlewares/errorHandler";
 import { Role } from "../models/roleModel";
 import { User } from "../models/userModel";
 import { UserRole } from "../models/userRoleModel";
@@ -105,13 +106,28 @@ export default class UserService extends AbstractService {
     /**
      * Update an user
      * @param {number} id
-     * @param {User} user
+     * @param {Partial<Pick<User, "username"|"name"|"surname"|"email"|"password">>} data
      * @returns {Promise<User>}
      */
-    public async updateUser(id: number, user: User): Promise<User> {
-        return this.update(User, user, { id }, {
-            notFoundMessage: "User not found",
+    public async updateUser(
+        id: number,
+        data: Partial<Pick<User, "username" | "name" | "surname" | "email" | "password">>
+    ): Promise<User> {
+        const [affectedCount] = await User.update(data, { where: { id } });
+        if (affectedCount === 0) {
+            throw new NotFoundError("User not found");
+        }
+        const updated = await this.findById(User, id, {
+            attributes: [...UserService.PUBLIC_ATTRIBUTES],
+            include: [
+                {
+                    model: Role,
+                    attributes: ["roleName"],
+                    through: { attributes: [] },
+                },
+            ],
         });
+        return updated!;
     }
 
     /**

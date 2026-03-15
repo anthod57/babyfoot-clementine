@@ -11,15 +11,17 @@ User.belongsToMany(Role, { through: UserRole, foreignKey: "userId" });
 Role.belongsToMany(User, { through: UserRole, foreignKey: "roleId" });
 
 User.belongsToMany(Team, { through: TeamHasUser, foreignKey: "userId" });
-Team.belongsToMany(User, { through: TeamHasUser, foreignKey: "teamId" });
+Team.belongsToMany(User, { through: TeamHasUser, foreignKey: "teamId", as: "users" });
 
 Team.belongsToMany(Tournament, {
     through: TeamTournamentParticipation,
     foreignKey: "teamId",
+    as: "tournaments",
 });
 Tournament.belongsToMany(Team, {
     through: TeamTournamentParticipation,
     foreignKey: "tournamentId",
+    as: "teams",
 });
 
 Match.belongsTo(Tournament, { foreignKey: "tournamentId" });

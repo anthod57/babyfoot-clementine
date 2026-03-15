@@ -2,7 +2,7 @@ import { Router } from "express";
 import userController from "../controllers/userController";
 import { validate } from "../middlewares/validate";
 import { auth, requireRole } from "../middlewares/auth";
-import { idParamSchema, createUserSchema } from "../validators";
+import { idParamSchema, createUserSchema, updateUserSchema } from "../validators";
 
 const router = Router();
 
@@ -22,8 +22,27 @@ router.get(
 
 router.post(
     "/",
+    auth,
+    requireRole("admin"),
     validate(createUserSchema),
     userController.createUser.bind(userController)
+);
+
+router.put(
+    "/:id",
+    auth,
+    requireRole("admin"),
+    validate(idParamSchema, "params"),
+    validate(updateUserSchema),
+    userController.updateUser.bind(userController)
+);
+
+router.delete(
+    "/:id",
+    auth,
+    requireRole("admin"),
+    validate(idParamSchema, "params"),
+    userController.deleteUser.bind(userController)
 );
 
 export default router;

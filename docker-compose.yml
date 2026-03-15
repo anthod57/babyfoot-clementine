@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      SEED_IF_EMPTY: "true"
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-babyfoot}
+      DB_PASSWORD: ${DB_PASSWORD:-babyfoot}
+      DB_NAME: ${DB_NAME:-babyfoot_clementine}
+      CORS_ORIGIN: /
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-babyfoot_clementine}
+      MYSQL_USER: ${DB_USER:-babyfoot}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-babyfoot}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:

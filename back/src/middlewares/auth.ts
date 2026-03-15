@@ -19,8 +19,6 @@ export function auth(
     next: NextFunction
 ): void {
     const authHeader = req.headers.authorization;
-
-    // Get the token from the authorization header
     const token = authHeader?.startsWith("Bearer ")
         ? authHeader.slice(7)
         : null;
@@ -31,7 +29,6 @@ export function auth(
     }
 
     try {
-        // Verify the token
         const payload = verifyToken(token);
 
         User.findByPk(payload.sub)

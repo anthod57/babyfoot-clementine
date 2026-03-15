@@ -13,8 +13,8 @@ class MatchController extends AbstractController {
      * @returns {Promise<Response>}
      */
     public async getAllMatches(req: Request, res: Response): Promise<Response> {
-        const { date } = req.query as GetMatchesQuery;
-        const matches = await this.matchService.getAllMatches(date);
+        const { date, result, upcoming } = req.query as GetMatchesQuery;
+        const matches = await this.matchService.getAllMatches({ date, result, upcoming });
         return this.ok(res, matches);
     }
 

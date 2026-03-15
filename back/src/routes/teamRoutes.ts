@@ -6,6 +6,7 @@ import {
     updateTeamSchema,
     addUserToTeamSchema,
     teamUserIdParamSchema,
+    getTeamsQuerySchema,
 } from "../validators/teamValidators";
 import { idParamSchema } from "../validators";
 import { auth, requireRole } from "../middlewares/auth";
@@ -54,7 +55,11 @@ router.delete(
 );
 
 // -- Public -- //
-router.get("/", teamController.getAllTeams.bind(teamController));
+router.get(
+    "/",
+    validate(getTeamsQuerySchema, "query"),
+    teamController.getAllTeams.bind(teamController)
+);
 
 router.get("/:id", teamController.getTeamById.bind(teamController));
 

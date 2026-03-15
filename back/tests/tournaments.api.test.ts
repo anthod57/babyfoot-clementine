@@ -11,6 +11,11 @@ import "../src/models";
 
 const BASE = "/v1/tournaments";
 
+/** Extract tournaments array from paginated GET / response */
+function getTournaments(res: { body: { data?: unknown[] } }) {
+    return Array.isArray(res.body?.data) ? res.body.data : res.body;
+}
+
 const validDates = {
     startDate: "2025-06-01",
     endDate: "2025-06-30",
@@ -41,15 +46,30 @@ describe("Tournaments API", () => {
     });
 
     describe("Authentication", () => {
-        it("GET / should return 401 without token", async () => {
+        // GET / is a public route — no token required
+        it("GET / should return 200 without token", async () => {
             const res = await request(app).get(BASE);
-            expect(res.status).toBe(401);
+            expect(res.status).toBe(200);
+            expect(Array.isArray(getTournaments(res))).toBe(true);
         });
 
-        it("GET / should return 401 with invalid token", async () => {
+        it("GET / should return 200 with an invalid token (public route)", async () => {
             const res = await request(app)
                 .get(BASE)
                 .set("Authorization", "Bearer invalid-token");
+            expect(res.status).toBe(200);
+        });
+
+        it("POST / should return 401 without token", async () => {
+            const res = await request(app).post(BASE).send({});
+            expect(res.status).toBe(401);
+        });
+
+        it("POST / should return 401 with invalid token", async () => {
+            const res = await request(app)
+                .post(BASE)
+                .set("Authorization", "Bearer invalid-token")
+                .send({});
             expect(res.status).toBe(401);
         });
     });
@@ -60,7 +80,111 @@ describe("Tournaments API", () => {
                 .get(BASE)
                 .set("Authorization", `Bearer ${token}`);
             expect(res.status).toBe(200);
-            expect(Array.isArray(res.body)).toBe(true);
+            expect(Array.isArray(getTournaments(res))).toBe(true);
+        });
+    });
+
+    describe("GET / - date filter", () => {
+        // T_IN  : 2030-01-10 → 2030-01-20  (active on 2030-01-15)
+        // T_OUT : 2030-02-01 → 2030-02-28  (NOT active on 2030-01-15)
+        const DATE_INSIDE  = "2030-01-15";
+        const DATE_OUTSIDE = "2030-12-31"; // no tournament active this day
+        let tournamentInId: number;
+        let tournamentOutId: number;
+
+        beforeAll(async () => {
+            const resIn = await request(app)
+                .post(BASE)
+                .set("Authorization", `Bearer ${token}`)
+                .send({ name: "T_IN date filter test",  startDate: "2030-01-10", endDate: "2030-01-20" });
+            tournamentInId = resIn.body.id;
+
+            const resOut = await request(app)
+                .post(BASE)
+                .set("Authorization", `Bearer ${token}`)
+                .send({ name: "T_OUT date filter test", startDate: "2030-02-01", endDate: "2030-02-28" });
+            tournamentOutId = resOut.body.id;
+        });
+
+        afterAll(async () => {
+            await request(app).delete(`${BASE}/${tournamentInId}`) .set("Authorization", `Bearer ${token}`);
+            await request(app).delete(`${BASE}/${tournamentOutId}`).set("Authorization", `Bearer ${token}`);
+        });
+
+        it("should return 400 for an invalid date format", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=15-01-2030`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).toBe(400);
+        });
+
+        it("should return only tournaments active on DATE_INSIDE", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=${DATE_INSIDE}`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).toBe(200);
+            const tournaments = getTournaments(res) as Array<{ id: number }>;
+            const ids = tournaments.map(t => t.id);
+            expect(ids).toContain(tournamentInId);
+            expect(ids).not.toContain(tournamentOutId);
+        });
+
+        it("should not return T_IN when filtering on T_OUT start date", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=2030-02-15`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).toBe(200);
+            const tournaments = getTournaments(res) as Array<{ id: number }>;
+            const ids = tournaments.map(t => t.id);
+            expect(ids).toContain(tournamentOutId);
+            expect(ids).not.toContain(tournamentInId);
+        });
+
+        it("should return empty array when no tournament is active on the given date", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=${DATE_OUTSIDE}`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).toBe(200);
+            expect(getTournaments(res)).toEqual([]);
+        });
+
+        it("should include tournaments whose range covers the boundary start date", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=2030-01-10`)
+                .set("Authorization", `Bearer ${token}`);
+            const tournaments = getTournaments(res) as Array<{ id: number }>;
+            const ids = tournaments.map(t => t.id);
+            expect(ids).toContain(tournamentInId);
+        });
+
+        it("should include tournaments whose range covers the boundary end date", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=2030-01-20`)
+                .set("Authorization", `Bearer ${token}`);
+            const tournaments = getTournaments(res) as Array<{ id: number }>;
+            const ids = tournaments.map(t => t.id);
+            expect(ids).toContain(tournamentInId);
+        });
+
+        it("should return results ordered by startDate ASC", async () => {
+            // Create a second tournament that starts earlier within the same window
+            const resEarly = await request(app)
+                .post(BASE)
+                .set("Authorization", `Bearer ${token}`)
+                .send({ name: "T_EARLY date filter test", startDate: "2030-01-10", endDate: "2030-01-18" });
+            const earlyId = resEarly.body.id;
+
+            const res = await request(app)
+                .get(`${BASE}?date=${DATE_INSIDE}`)
+                .set("Authorization", `Bearer ${token}`);
+            const tournaments = getTournaments(res) as Array<{ id: number; startDate: string }>;
+
+            // Verify ascending order
+            for (let i = 1; i < tournaments.length; i++) {
+                expect(tournaments[i]!.startDate >= tournaments[i - 1]!.startDate).toBe(true);
+            }
+
+            await request(app).delete(`${BASE}/${earlyId}`).set("Authorization", `Bearer ${token}`);
         });
     });
 

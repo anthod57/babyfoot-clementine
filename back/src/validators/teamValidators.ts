@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const getTeamsQuerySchema = z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    search: z.string().min(1).optional().transform(s => s?.trim() || undefined),
+});
+
+export type GetTeamsQuery = z.infer<typeof getTeamsQuerySchema>;
+
 const teamBaseSchema = z.object({
     name: z.string().min(1, "Name is required").max(255),
 });

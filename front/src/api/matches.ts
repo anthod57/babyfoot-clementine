@@ -14,6 +14,8 @@ export interface CreateMatchPayload {
 }
 
 export interface UpdateMatchPayload {
+    homeTeamId?: number;
+    awayTeamId?: number;
     homeScore?: number;
     awayScore?: number;
     result?: number;
@@ -23,6 +25,10 @@ export interface UpdateMatchPayload {
 export interface MatchFilters {
     /** Filter matches by day — format: YYYY-MM-DD */
     date?: string;
+    /** Filter by result value (0=Pending, 1=HomeWin, 2=AwayWin, 3=Draw, 4=InProgress) */
+    result?: number;
+    /** If true, only return pending matches scheduled in the future */
+    upcoming?: boolean;
     signal?: AbortSignal;
 }
 

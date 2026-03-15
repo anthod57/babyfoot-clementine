@@ -27,7 +27,6 @@ export class ApiError extends Error {
     }
 }
 
-// Caching system
 let _token: string | null = localStorage.getItem("auth_token");
 
 export const tokenStore = {
@@ -71,7 +70,6 @@ export async function apiFetch<TResponse>(
 
     const headers: HeadersInit = { "Content-Type": "application/json" };
 
-    // Add JWT if not public and token is present
     if (!isPublic && _token) {
         headers["Authorization"] = `Bearer ${_token}`;
     }
@@ -84,23 +82,18 @@ export async function apiFetch<TResponse>(
         body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
-    // Handle errors
     if (!response.ok) {
         let message = response.statusText;
         try {
             const json = await response.json();
             message = json?.message ?? json?.error ?? message;
-        } catch {
-            // Non-JSON error body
-        }
+        } catch {}
 
-        // Clear token if unauthorized
         if (response.status === 401) tokenStore.clear();
 
         throw new ApiError(response.status, response.statusText, message);
     }
 
-    // Return undefined if no content
     if (response.status === 204) return undefined as TResponse;
 
     return response.json() as Promise<TResponse>;
@@ -115,9 +108,11 @@ export function toQueryString(
     params: Record<string, string | number | boolean | undefined>
 ): string {
     const qs = new URLSearchParams();
+
     for (const [key, value] of Object.entries(params)) {
         if (value !== undefined) qs.set(key, String(value));
     }
+
     const str = qs.toString();
     return str ? `?${str}` : "";
 }

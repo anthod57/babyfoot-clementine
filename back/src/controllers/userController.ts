@@ -1,6 +1,7 @@
 import UserService from "../services/userService";
 import AbstractController from "./abstractController";
 import { Request, Response } from "express";
+import { hashPassword } from "../utils/password";
 
 /**
  * User controller class
@@ -57,6 +58,43 @@ class UserController extends AbstractController {
         });
 
         return this.created(res, user);
+    }
+
+    /**
+     * Update an user
+     * @param {Request} req
+     * @param {Response} res
+     * @returns {Promise<Response>}
+     */
+    public async updateUser(req: Request, res: Response): Promise<Response> {
+        const id = Number(req.params.id);
+        const { username, name, surname, email, password } = req.body;
+
+        const updates: Record<string, unknown> = {};
+
+        if (username !== undefined) updates.username = username;
+        if (name !== undefined) updates.name = name;
+        if (surname !== undefined) updates.surname = surname;
+        if (email !== undefined) updates.email = email;
+        if (password !== undefined) {
+            updates.password = await hashPassword(password);
+        }
+
+        const user = await this.userService.updateUser(id, updates);
+
+        return this.ok(res, user);
+    }
+
+    /**
+     * Delete an user
+     * @param {Request} req
+     * @param {Response} res
+     * @returns {Promise<Response>}
+     */
+    public async deleteUser(req: Request, res: Response): Promise<Response> {
+        const id = Number(req.params.id);
+        await this.userService.deleteUser(id);
+        return this.noContent(res);
     }
 }
 

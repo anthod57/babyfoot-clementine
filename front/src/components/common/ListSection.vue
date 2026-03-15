@@ -12,7 +12,7 @@ const selectedDate = defineModel<string>("date", { default: "" });
 </script>
 
 <template>
-    <section :aria-labelledby="headingId" class="mx-auto w-full px-4 py-1">
+    <section :aria-labelledby="headingId" class="mx-auto w-full px-4 py-10">
         <!-- Header -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
             <h2
@@ -25,12 +25,15 @@ const selectedDate = defineModel<string>("date", { default: "" });
 
             <!-- Date selector -->
             <label
-                class="flex items-center gap-2 text-sm text-gray-600 font-medium"
+                :for="`${headingId}-date-filter`"
+                class="flex items-center gap-2 text-sm text-gray-600 font-medium cursor-pointer"
             >
-                <span>Date</span>
+                <span>Filtrer par date</span>
                 <input
+                    :id="`${headingId}-date-filter`"
                     v-model="selectedDate"
                     type="date"
+                    :aria-label="`Filtrer les ${title.toLowerCase()} par date`"
                     class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
             </label>

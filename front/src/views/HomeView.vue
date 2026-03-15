@@ -1,25 +1,22 @@
 <script setup lang="ts">
 import HeroSection from "@/components/home/HeroSection.vue";
 import NewsComponent from "@/components/NewsComponent.vue";
-import { onMounted, ref } from "vue";
-import type { MatchWithTeams } from "@/types/api";
-import { matchesApi } from "@/api/matches";
 import MatchListComponent from "@/components/match/MatchListComponent.vue";
-
-const matches = ref<MatchWithTeams[]>([]);
-
-onMounted(async () => {
-    matches.value = await matchesApi.getAll();
-});
+import TournamentListComponent from "@/components/tournament/TournamentListComponent.vue";
 </script>
 
 <template>
     <HeroSection />
     <NewsComponent />
     <MatchListComponent
-        :groups="matches"
-        :max-display="20"
+        :upcoming="true"
         title="Les prochains matchs"
-        class="max-w-[95vw] lg:max-w-6xl"
+        :max-display="20"
+        class="max-w-6xl mx-auto"
+    />
+    <TournamentListComponent
+        title="Les tournois"
+        :max-display="10"
+        class="max-w-6xl mx-auto"
     />
 </template>

@@ -9,13 +9,14 @@ import { sequelize } from "../config/database";
 
 /**
  * Match result enum
- * 0 = Pending, 1 = Home team win, 2 = Away team win, 3 = Draw
+ * 0 = Pending, 1 = Home team win, 2 = Away team win, 3 = Draw, 4 = In progress
  */
 export enum MatchResult {
     PENDING = 0,
     HOME_TEAM_WIN = 1,
     AWAY_TEAM_WIN = 2,
     DRAW = 3,
+    IN_PROGRESS = 4,
 }
 
 export class Match extends Model<
@@ -29,7 +30,7 @@ export class Match extends Model<
     declare awayTeamId: number;
     declare homeScore: number;
     declare awayScore: number;
-    /** 0 = Pending, 1 = Home team win, 2 = Away team win, 3 = Draw */
+    /** 0 = Pending, 1 = Home team win, 2 = Away team win, 3 = Draw, 4 = In progress */
     declare result: MatchResult;
     declare readonly createdAt: CreationOptional<Date>;
     declare readonly updatedAt: CreationOptional<Date>;
@@ -86,8 +87,9 @@ Match.init(
             type: DataTypes.TINYINT.UNSIGNED,
             allowNull: false,
             defaultValue: MatchResult.PENDING,
-            validate: { min: 0, max: 3 },
-            comment: "0=Pending, 1=HomeTeamWin, 2=AwayTeamWin, 3=Draw",
+            validate: { min: 0, max: 4 },
+            comment:
+                "0=Pending, 1=HomeTeamWin, 2=AwayTeamWin, 3=Draw, 4=In progress",
         },
         createdAt: {
             type: DataTypes.DATE,

@@ -25,9 +25,15 @@ class TournamentController extends AbstractController {
         req: Request,
         res: Response
     ): Promise<Response> {
-        const { date } = req.query as GetTournamentsQuery;
-        const tournaments = await this.tournamentService.getAllTournaments(date);
-        return this.ok(res, tournaments);
+        const query = req.query as unknown as GetTournamentsQuery;
+        const { date, page = 1, limit = 20, search } = query;
+        const result = await this.tournamentService.getAllTournaments({
+            date,
+            page,
+            limit,
+            search: typeof search === "string" ? search.trim() || undefined : undefined,
+        });
+        return this.ok(res, result);
     }
 
     /**
@@ -136,10 +142,8 @@ class TournamentController extends AbstractController {
         req: Request,
         res: Response
     ): Promise<Response> {
-        const { tournamentId, teamId } = req.body as unknown as {
-            tournamentId: number;
-            teamId: number;
-        };
+        const tournamentId = Number(req.params.id);
+        const { teamId } = req.body as { teamId: number };
 
         const teamTournamentParticipation =
             await this.tournamentService.addTeamToTournament(
@@ -160,10 +164,8 @@ class TournamentController extends AbstractController {
         req: Request,
         res: Response
     ): Promise<Response> {
-        const { tournamentId, teamId } = req.body as unknown as {
-            tournamentId: number;
-            teamId: number;
-        };
+        const tournamentId = Number(req.params.id);
+        const teamId = Number(req.params.teamId);
 
         await this.tournamentService.removeTeamFromTournament(
             tournamentId,

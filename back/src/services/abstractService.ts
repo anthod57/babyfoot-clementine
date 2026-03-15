@@ -53,6 +53,7 @@ export default abstract class AbstractService {
         notFoundOptions?: NotFoundOptions
     ): Promise<T> {
         const record = await this.findById(model, id, findOptions);
+
         if (!record) {
             throw new NotFoundError(
                 notFoundOptions?.notFoundMessage ?? "Resource not found"

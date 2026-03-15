@@ -23,6 +23,21 @@ export interface TournamentFilters {
     signal?: AbortSignal;
 }
 
+export interface GetTournamentsParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    date?: string;
+    signal?: AbortSignal;
+}
+
+export interface PaginatedTournamentsResponse {
+    data: Tournament[];
+    total: number;
+    page: number;
+    limit: number;
+}
+
 /**
  * Tournaments API
  * @extends {BaseApi<Tournament, CreateTournamentPayload, UpdateTournamentPayload>}
@@ -37,14 +52,31 @@ class TournamentsApi extends BaseApi<
     }
 
     /**
-     * Get all tournaments
+     * Get all tournaments (paginated)
+     * @param {GetTournamentsParams} params
+     * @returns {Promise<PaginatedTournamentsResponse>}
+     */
+    getAllPaginated(
+        params: GetTournamentsParams = {}
+    ): Promise<PaginatedTournamentsResponse> {
+        const { signal, ...rest } = params;
+        const qs = toQueryString(rest);
+        return apiFetch<PaginatedTournamentsResponse>(`${this.basePath}${qs}`, {
+            signal,
+        });
+    }
+
+    /**
+     * Get all tournaments (simple list, uses date filter only - for backward compat)
      * @param {TournamentFilters} filters
      * @returns {Promise<Tournament[]>}
      */
     getAll(filters: TournamentFilters = {}): Promise<Tournament[]> {
         const { signal, ...params } = filters;
         const qs = toQueryString(params);
-        return apiFetch<Tournament[]>(`${this.basePath}${qs}`, { signal });
+        return apiFetch<PaginatedTournamentsResponse>(`${this.basePath}${qs}`, {
+            signal,
+        }).then(res => res.data);
     }
 
     /**
@@ -100,7 +132,7 @@ class TournamentsApi extends BaseApi<
     addTeam(tournamentId: number, teamId: number): Promise<void> {
         return apiFetch<void>(`${this.basePath}/${tournamentId}/teams`, {
             method: "POST",
-            body: { team_id: teamId },
+            body: { teamId },
         });
     }
 

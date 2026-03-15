@@ -248,6 +248,95 @@ describe("Matches API", () => {
         });
     });
 
+    describe("GET / - result filter", () => {
+        // createdMatch (from POST block) has result = PENDING (0)
+        // We create a second match and update it to HOME_TEAM_WIN (1) to test filtering
+        let finishedMatchId: number;
+
+        beforeAll(async () => {
+            const res = await request(app)
+                .post(BASE)
+                .set("Authorization", `Bearer ${token}`)
+                .send({
+                    tournamentId,
+                    date: "2025-07-15T12:00:00.000Z",
+                    homeTeamId,
+                    awayTeamId,
+                });
+            finishedMatchId = res.body.id;
+
+            await request(app)
+                .put(`${BASE}/${finishedMatchId}`)
+                .set("Authorization", `Bearer ${token}`)
+                .send({ result: MatchResult.HOME_TEAM_WIN, homeScore: 3, awayScore: 1 });
+        });
+
+        afterAll(async () => {
+            await request(app)
+                .delete(`${BASE}/${finishedMatchId}`)
+                .set("Authorization", `Bearer ${token}`);
+        });
+
+        it("should return 400 for an invalid result value", async () => {
+            const res = await request(app)
+                .get(`${BASE}?result=99`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).toBe(400);
+        });
+
+        it("should return only PENDING matches when result=0", async () => {
+            const res = await request(app)
+                .get(`${BASE}?result=0`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            for (const match of res.body as Array<{ result: number }>) {
+                expect(match.result).toBe(MatchResult.PENDING);
+            }
+            const ids = (res.body as Array<{ id: number }>).map(m => m.id);
+            expect(ids).not.toContain(finishedMatchId);
+        });
+
+        it("should return only HOME_WIN matches when result=1", async () => {
+            const res = await request(app)
+                .get(`${BASE}?result=1`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            for (const match of res.body as Array<{ result: number }>) {
+                expect(match.result).toBe(MatchResult.HOME_TEAM_WIN);
+            }
+            const ids = (res.body as Array<{ id: number }>).map(m => m.id);
+            expect(ids).toContain(finishedMatchId);
+        });
+
+        it("should combine date and result filters", async () => {
+            const res = await request(app)
+                .get(`${BASE}?date=2025-07-15&result=0`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            for (const match of res.body as Array<{ result: number }>) {
+                expect(match.result).toBe(MatchResult.PENDING);
+            }
+            const ids = (res.body as Array<{ id: number }>).map(m => m.id);
+            expect(ids).not.toContain(finishedMatchId);
+        });
+
+        it("should return results ordered by date ASC", async () => {
+            const res = await request(app)
+                .get(BASE)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            const dates = (res.body as Array<{ date: string }>).map(m => m.date);
+            for (let i = 1; i < dates.length; i++) {
+                expect(dates[i]! >= dates[i - 1]!).toBe(true);
+            }
+        });
+    });
+
     describe("GET /:id", () => {
         it("should return 404 for non-existent match", async () => {
             const res = await request(app)

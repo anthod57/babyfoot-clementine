@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import AbstractService from "./abstractService";
 import { Team } from "../models/teamModel";
 import { TeamHasUser } from "../models/teamHasUserModel";
@@ -15,10 +16,18 @@ export type TeamWithUsers = {
     users: { id: number; fullName: string }[];
 };
 
+export type PaginatedTeamsResult = {
+    data: TeamWithUsers[];
+    total: number;
+    page: number;
+    limit: number;
+};
+
 const TEAM_INCLUDE_USERS = {
     include: [
         {
             model: User,
+            as: "users",
             attributes: ["id", "name", "surname"],
             through: { attributes: [] },
         },
@@ -27,11 +36,11 @@ const TEAM_INCLUDE_USERS = {
 
 /**
  * Format a team with its users
- * @param {Team & { Users?: User[] }} team
+ * @param {Team & { users?: User[] }} team
  * @returns {TeamWithUsers}
  */
-function formatTeamWithUsers(team: Team & { Users?: User[] }): TeamWithUsers {
-    const users = (team.Users ?? []).map(u => ({
+function formatTeamWithUsers(team: Team & { users?: User[] }): TeamWithUsers {
+    const users = (team.users ?? []).map(u => ({
         id: u.id,
         fullName: `${u.name} ${u.surname}`.trim(),
     }));
@@ -46,14 +55,30 @@ function formatTeamWithUsers(team: Team & { Users?: User[] }): TeamWithUsers {
 
 export default class TeamService extends AbstractService {
     /**
-     * Get all teams
+     * Get all teams with pagination and optional name search
      */
-    public async getAllTeams(): Promise<TeamWithUsers[]> {
-        const teams = (await this.findAll(
-            Team,
-            TEAM_INCLUDE_USERS
-        )) as (Team & { Users?: User[] })[];
-        return teams.map(formatTeamWithUsers);
+    public async getAllTeams(
+        page = 1,
+        limit = 10,
+        search?: string
+    ): Promise<PaginatedTeamsResult> {
+        const offset = (page - 1) * limit;
+        const where = search
+            ? { name: { [Op.like]: `%${search}%` } }
+            : {};
+        const { count, rows } = await Team.findAndCountAll({
+            ...TEAM_INCLUDE_USERS,
+            where,
+            limit,
+            offset,
+        });
+        const teams = rows as (Team & { users?: User[] })[];
+        return {
+            data: teams.map(formatTeamWithUsers),
+            total: count,
+            page,
+            limit,
+        };
     }
 
     /**
@@ -61,7 +86,7 @@ export default class TeamService extends AbstractService {
      */
     public async getTeamById(id: number): Promise<TeamWithUsers | null> {
         const team = (await this.findById(Team, id, TEAM_INCLUDE_USERS)) as
-            | (Team & { Users?: User[] })
+            | (Team & { users?: User[] })
             | null;
         return team ? formatTeamWithUsers(team) : null;
     }
@@ -77,7 +102,7 @@ export default class TeamService extends AbstractService {
             Team,
             created.id,
             TEAM_INCLUDE_USERS
-        )) as Team & { Users?: User[] };
+        )) as Team & { users?: User[] };
         return formatTeamWithUsers(withUsers);
     }
 
@@ -101,7 +126,7 @@ export default class TeamService extends AbstractService {
             Team,
             id,
             TEAM_INCLUDE_USERS
-        )) as Team & { Users?: User[] };
+        )) as Team & { users?: User[] };
         return formatTeamWithUsers(withUsers);
     }
 
@@ -144,7 +169,7 @@ export default class TeamService extends AbstractService {
             Team,
             teamId,
             TEAM_INCLUDE_USERS
-        )) as Team & { Users?: User[] };
+        )) as Team & { users?: User[] };
 
         return formatTeamWithUsers(withUsers);
     }
