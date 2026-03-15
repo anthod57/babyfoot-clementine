@@ -102,7 +102,7 @@ onUnmounted(() => {
 
                 <!-- Desktop auth: login or user dropdown -->
                 <div class="hidden md:block relative" ref="dropdownRef">
-                    <RouterLink v-if="!isAuthenticated" to="/connexion">
+                    <RouterLink v-if="!isAuthenticated" to="/login">
                         <ButtonComponent
                             variant="primary"
                             size="lg"
@@ -207,7 +207,7 @@ onUnmounted(() => {
             <div class="px-4 py-3 border-t border-gray-100">
                 <RouterLink
                     v-if="!isAuthenticated"
-                    to="/connexion"
+                    to="/login"
                     class="block px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium text-center hover:bg-emerald-700 transition-colors duration-200"
                     @click="closeMenu"
                 >

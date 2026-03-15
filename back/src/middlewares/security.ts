@@ -13,7 +13,7 @@ export const securityMiddleware = [
     }),
     rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
-        max: isDev ? 500 : 100,
+        max: isDev ? 10000 : 500,
         standardHeaders: true,
         legacyHeaders: false,
     }),

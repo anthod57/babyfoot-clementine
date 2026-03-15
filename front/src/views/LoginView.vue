@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { authApi } from "@/api";
 import { useAuthStore } from "@/composables/useAuthStore";
 import ButtonComponent from "@/components/common/ButtonComponent.vue";
 import { getErrorMessage } from "@/utils/error";
 
 const router = useRouter();
+const route = useRoute();
+const redirect = computed(() => route.query.redirect as string | undefined);
 const { setUser } = useAuthStore();
 const email = ref("");
 const password = ref("");
@@ -22,7 +24,7 @@ const DEMO_ACCOUNTS = [
 ];
 
 /**
- * Soumet le formulaire de connexion et redirige en cas de succès.
+ * Submit the login form and redirect to the home page on success.
  * @returns {Promise<void>}
  */
 async function onSubmit() {
@@ -40,8 +42,11 @@ async function onSubmit() {
             email: email.value,
             password: password.value,
         });
+
         setUser(res.user);
-        router.push("/");
+
+        const target = redirect.value;
+        router.push(target && target.startsWith("/") ? target : "/");
     } catch (e) {
         error.value = getErrorMessage(e, "Erreur de connexion.");
     } finally {
