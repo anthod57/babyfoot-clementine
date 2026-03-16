@@ -8,7 +8,7 @@ import { tournamentsApi, teamsApi, matchesApi } from "@/api";
 import type { Tournament, Team, MatchWithTeams } from "@/types/api";
 import { MatchResult } from "@/types/api";
 import ButtonComponent from "@/components/common/ButtonComponent.vue";
-import { formatDateShort } from "@/utils/date";
+import { formatDateShort, formatTime } from "@/utils/date";
 import { getErrorMessage } from "@/utils/error";
 
 const TOURNAMENTS_PER_PAGE = 10;
@@ -371,12 +371,23 @@ function scheduleSaveMatchScore(
 }
 
 const editingMatchId = ref<number | null>(null);
-const editMatchForm = ref({ homeTeamId: 0, awayTeamId: 0 });
+const editMatchForm = ref({
+    homeTeamId: 0,
+    awayTeamId: 0,
+    dateTime: "",
+});
 const isSavingMatch = ref(false);
 const editMatchError = ref("");
 
+/** Formats a date for datetime-local input (YYYY-MM-DDTHH:mm). */
+function toDateTimeLocal(date: Date | string): string {
+    const d = new Date(date);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /**
- * Enters edit mode for the match (change teams).
+ * Enters edit mode for the match (change teams and date).
  * @param {MatchWithTeams} m
  * @returns {void}
  */
@@ -385,6 +396,7 @@ function startEditMatch(m: MatchWithTeams): void {
     editMatchForm.value = {
         homeTeamId: m.homeTeamId,
         awayTeamId: m.awayTeamId,
+        dateTime: toDateTimeLocal(m.date),
     };
     editMatchError.value = "";
 }
@@ -405,7 +417,7 @@ async function submitEditMatch(): Promise<void> {
     if (!editingMatchId.value) return;
 
     editMatchError.value = "";
-    const { homeTeamId, awayTeamId } = editMatchForm.value;
+    const { homeTeamId, awayTeamId, dateTime } = editMatchForm.value;
 
     if (homeTeamId === awayTeamId) {
         editMatchError.value = "Les deux équipes doivent être différentes.";
@@ -415,10 +427,14 @@ async function submitEditMatch(): Promise<void> {
     isSavingMatch.value = true;
 
     try {
-        const updated = await matchesApi.update(editingMatchId.value, {
+        const payload: { homeTeamId: number; awayTeamId: number; date?: string } = {
             homeTeamId,
             awayTeamId,
-        });
+        };
+        if (dateTime) {
+            payload.date = new Date(dateTime).toISOString();
+        }
+        const updated = await matchesApi.update(editingMatchId.value, payload);
         expandedMatches.value = expandedMatches.value.map(x =>
             x.id === editingMatchId.value ? { ...x, ...updated } : x
         );
@@ -760,6 +776,17 @@ const editMatchAwayTeamOptions = computed(() =>
                                         class="flex items-center gap-2 min-w-0 flex-1"
                                     >
                                         <span
+                                            class="text-xs text-gray-500 shrink-0"
+                                            :title="
+                                                formatDateShort(m.date) +
+                                                ' ' +
+                                                formatTime(m.date)
+                                            "
+                                        >
+                                            {{ formatDateShort(m.date) }}
+                                            {{ formatTime(m.date) }}
+                                        </span>
+                                        <span
                                             class="text-sm font-medium truncate"
                                             >{{ m.homeTeam?.name ?? "?" }}</span
                                         >
@@ -840,7 +867,7 @@ const editMatchAwayTeamOptions = computed(() =>
                                         class="text-sm text-emerald-600 hover:text-emerald-700 cursor-pointer"
                                         @click="startEditMatch(m)"
                                     >
-                                        Modifier équipes
+                                        Modifier (équipes, date)
                                     </button>
                                 </div>
                             </div>
@@ -999,6 +1026,19 @@ const editMatchAwayTeamOptions = computed(() =>
                         Modifier le match
                     </h2>
                     <form @submit.prevent="submitEditMatch" class="space-y-4">
+                        <div>
+                            <label
+                                for="edit-match-datetime"
+                                class="block text-sm font-medium text-gray-700 mb-1"
+                                >Date et heure</label
+                            >
+                            <input
+                                id="edit-match-datetime"
+                                v-model="editMatchForm.dateTime"
+                                type="datetime-local"
+                                class="w-full rounded-lg border border-gray-200 px-3 py-2"
+                            />
+                        </div>
                         <div>
                             <label
                                 class="block text-sm font-medium text-gray-700 mb-1"

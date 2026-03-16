@@ -4,6 +4,10 @@ import TournamentListComponent from "@/components/tournament/TournamentListCompo
 
 <template>
     <div class="max-w-6xl w-full mx-auto">
-        <TournamentListComponent title="Les tournois" class="w-full" />
+        <TournamentListComponent
+            title="Les tournois"
+            paginated
+            class="w-full"
+        />
     </div>
 </template>

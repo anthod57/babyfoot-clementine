@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { RouterLink } from "vue-router";
 import BackLink from "@/components/common/BackLink.vue";
 import { useQuery } from "@/composables/useQuery";
 import { matchesApi } from "@/api";
@@ -132,6 +133,33 @@ function teamClass(side: "home" | "away"): string {
 
         <!-- Match detail -->
         <template v-else-if="match">
+            <!-- Tournament breadcrumb -->
+            <div
+                v-if="match.tournament"
+                class="mb-4"
+            >
+                <RouterLink
+                    :to="`/tournaments/${match.tournament.id}`"
+                    class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-emerald-600 transition-colors"
+                >
+                    <svg
+                        class="size-4 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                        />
+                    </svg>
+                    {{ match.tournament.name }}
+                </RouterLink>
+            </div>
+
             <!-- Status badge + date -->
             <div class="flex items-center gap-3 mb-5">
                 <span

@@ -3,6 +3,7 @@ defineProps<{
     title: string;
     headingId: string;
     showTitle?: boolean;
+    showDateFilter?: boolean;
     isPending?: boolean;
     isEmpty?: boolean;
     emptyMessage?: string;
@@ -23,8 +24,11 @@ const selectedDate = defineModel<string>("date", { default: "" });
                 {{ title }}
             </h2>
 
-            <!-- Date selector -->
-            <label
+            <div class="flex items-center gap-3">
+                <slot name="header-extra" />
+                <!-- Date selector -->
+                <label
+                    v-if="showDateFilter !== false"
                 :for="`${headingId}-date-filter`"
                 class="flex items-center gap-2 text-sm text-gray-600 font-medium cursor-pointer"
             >
@@ -37,6 +41,7 @@ const selectedDate = defineModel<string>("date", { default: "" });
                     class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
             </label>
+            </div>
         </div>
 
         <!-- Skeleton loading -->

@@ -2,15 +2,20 @@
 import { ref, watch, computed } from "vue";
 import ListSection from "@/components/common/ListSection.vue";
 import { useQuery } from "@/composables/useQuery";
+import { useDebouncedRef } from "@/composables/useDebouncedRef";
 import { tournamentsApi } from "@/api";
 import type { Tournament } from "@/types/api";
 import { formatDateShort } from "@/utils/date";
+
+const TOURNAMENTS_PER_PAGE = 15;
 
 const props = defineProps<{
     /** Optional section title — hidden if not provided */
     title?: string;
     /** Cap the number of displayed tournaments */
     maxDisplay?: number;
+    /** Enable pagination and search (for /tournaments page) */
+    paginated?: boolean;
 }>();
 
 /**
@@ -22,18 +27,63 @@ function todayISO(): string {
 }
 
 const selectedDate = ref(todayISO());
+const currentPage = ref(1);
+const searchInput = ref("");
+const searchQuery = useDebouncedRef(searchInput, 300);
 
 watch(selectedDate, val => {
     if (!val) selectedDate.value = todayISO();
 });
 
-const { data: tournaments, isPending } = useQuery(
+watch([searchQuery, selectedDate], () => {
+    if (props.paginated) currentPage.value = 1;
+});
+
+const { data: tournamentsResponse, isPending: isPaginatedPending } = useQuery(
     signal =>
-        tournamentsApi.getAll({
-            date: selectedDate.value || undefined,
-            signal,
-        }),
-    { watch: [selectedDate] }
+        props.paginated
+            ? tournamentsApi.getAllPaginated({
+                  page: currentPage.value,
+                  limit: TOURNAMENTS_PER_PAGE,
+                  search: searchQuery.value.trim() || undefined,
+                  date: selectedDate.value || undefined,
+                  signal,
+              })
+            : Promise.resolve(null),
+    { watch: [currentPage, searchQuery, selectedDate, () => props.paginated] }
+);
+
+const { data: tournamentsList, isPending: isListPending } = useQuery(
+    signal =>
+        !props.paginated
+            ? tournamentsApi.getAll({
+                  date: selectedDate.value || undefined,
+                  signal,
+              })
+            : Promise.resolve([]),
+    { watch: [selectedDate, () => props.paginated] }
+);
+
+const tournaments = computed(() =>
+    props.paginated
+        ? tournamentsResponse.value?.data ?? []
+        : tournamentsList.value ?? []
+);
+
+const isPending = computed(
+    () => isPaginatedPending.value || isListPending.value
+);
+
+const totalTournaments = computed(
+    () => tournamentsResponse.value?.total ?? tournaments.value.length
+);
+const totalPages = computed(
+    () =>
+        Math.ceil(totalTournaments.value / TOURNAMENTS_PER_PAGE) || 1
+);
+const hasPrev = computed(() => currentPage.value > 1);
+const hasNext = computed(
+    () => currentPage.value < totalPages.value
 );
 
 /** Liste des tournois affichés (tronquée selon maxDisplay) avec statut calculé. */
@@ -81,11 +131,22 @@ const STATUS_BADGE: Record<TournamentStatus, string> = {
         v-model:date="selectedDate"
         :title="title ?? 'Tournois'"
         :show-title="!!title"
+        :show-date-filter="true"
         heading-id="tournaments-heading"
         :is-pending="isPending"
         :is-empty="isEmpty"
-        empty-message="Aucun tournoi pour cette période."
+        :empty-message="paginated ? 'Aucun tournoi.' : 'Aucun tournoi pour cette période.'"
     >
+        <template v-if="paginated" #header-extra>
+            <input
+                v-model="searchInput"
+                type="search"
+                placeholder="Rechercher…"
+                aria-label="Rechercher un tournoi"
+                class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-48"
+            />
+        </template>
+
         <div
             class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
         >
@@ -148,5 +209,37 @@ const STATUS_BADGE: Record<TournamentStatus, string> = {
                 </li>
             </ul>
         </div>
+
+        <nav
+            v-if="paginated && totalPages > 1"
+            aria-label="Pagination des tournois"
+            class="mt-6 flex items-center justify-center gap-4"
+        >
+            <button
+                type="button"
+                :disabled="!hasPrev"
+                aria-label="Page précédente"
+                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-gray-50"
+                @click="currentPage--"
+            >
+                Précédent
+            </button>
+            <span
+                class="text-sm text-gray-500"
+                role="status"
+                aria-live="polite"
+            >
+                Page {{ currentPage }} / {{ totalPages }}
+            </span>
+            <button
+                type="button"
+                :disabled="!hasNext"
+                aria-label="Page suivante"
+                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-gray-50"
+                @click="currentPage++"
+            >
+                Suivant
+            </button>
+        </nav>
     </ListSection>
 </template>

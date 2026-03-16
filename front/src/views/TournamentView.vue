@@ -764,7 +764,7 @@ function cellClass(result: MatchResult, perspective: "home" | "away"): string {
             <MatchListComponent
                 :tournament-id="id"
                 title="Matchs du tournoi"
-                :max-display="50"
+                :max-display="100"
                 class="mt-2"
             />
         </template>

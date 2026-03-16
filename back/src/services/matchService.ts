@@ -47,6 +47,17 @@ const MATCH_INCLUDE_TEAMS = {
     ],
 };
 
+const MATCH_INCLUDE_WITH_TOURNAMENT = {
+    include: [
+        ...MATCH_INCLUDE_TEAMS.include,
+        {
+            model: Tournament,
+            as: "tournament",
+            attributes: ["id", "name"],
+        },
+    ],
+};
+
 export default class MatchService extends AbstractService {
     /**
      * Get all matches
@@ -102,7 +113,7 @@ export default class MatchService extends AbstractService {
         return this.findById(
             Match,
             id,
-            MATCH_INCLUDE_TEAMS
+            MATCH_INCLUDE_WITH_TOURNAMENT
         ) as Promise<Match | null>;
     }
 

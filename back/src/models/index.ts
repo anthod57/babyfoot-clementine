@@ -24,7 +24,7 @@ Tournament.belongsToMany(Team, {
     as: "teams",
 });
 
-Match.belongsTo(Tournament, { foreignKey: "tournamentId" });
+Match.belongsTo(Tournament, { foreignKey: "tournamentId", as: "tournament" });
 Match.belongsTo(Team, { foreignKey: "homeTeamId", as: "homeTeam" });
 Match.belongsTo(Team, { foreignKey: "awayTeamId", as: "awayTeam" });
 Tournament.hasMany(Match, { foreignKey: "tournamentId" });
